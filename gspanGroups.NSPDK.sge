@@ -1,0 +1,89 @@
+#!/bin/bash
+#$ -cwd
+#$ -l h_vmem=2G	
+
+# all parameters for the shell script
+
+working_dir=$1
+logDir=$2
+job_num=$3
+gspanDir=$4
+svectorDir=$5
+debug=$6
+
+shift 6
+
+cd $working_dir
+id=$$
+
+tmpDir="/var/tmp/gspanGroups_${id}"
+mkdir -p ${tmpDir}
+
+if [ -z "$job_num" ]; then
+	echo "No job_num found! Set job_num to 0!"
+	let job_num=0
+fi
+
+if [ -z "$SGE_TASK_ID" ]; then
+	echo "No SGE environment found! Set SGE_TASK_ID to 0!"
+	let SGE_TASK_ID=$job_num
+	JOB_ID="LOCAL"
+fi
+
+if [ "$SGE_TASK_ID" = "undefined" ]; then
+	echo "No SGE array job found! Set SGE_TASK_ID to 0!"
+	let SGE_TASK_ID=$job_num;
+	JOB_ID=LOCAL
+fi
+
+######
+
+#echo $JOB_ID > $logDir/TASKID
+
+cd $working_dir
+
+if [ -f $logDir/task-$SGE_TASK_ID.finished ]; then
+	exit 0;
+fi
+
+touch $logDir/task-$SGE_TASK_ID.started
+
+bzcat $gspanDir/$SGE_TASK_ID.group.gspan.bz2 > $tmpDir/$SGE_TASK_ID.group.gspan
+
+\time --version 1>/dev/null 2>/dev/null
+timefail=$?
+
+if [ "$timefail" != "0" ]; then
+ 	echo "gnu time failed! Run without time logging...";
+ 	echo "0.0:0.0" > $logDir/task-$SGE_TASK_ID.started
+ 	$@ -fg $tmpDir/$SGE_TASK_ID.group.gspan -of;
+else
+	\time -p -o $logDir/task-$SGE_TASK_ID.started --format %e:%U $@ -fg $tmpDir/$SGE_TASK_ID.group.gspan -of;
+fi 
+
+
+#\time -p -o $logDir/task-$SGE_TASK_ID.started -a --format %e:%U  $@ -fg $tmpDir/$SGE_TASK_ID.group.gspan -of;  
+	
+fail=$?
+		
+if [ "$fail" != "0" ]; then
+	echo $fail >  $logDir/task-$SGE_TASK_ID.started
+	\mv $logDir/task-$SGE_TASK_ID.started $logDir/task-$SGE_TASK_ID.error
+	exit 1;
+fi
+
+cat $tmpDir/$SGE_TASK_ID.group.gspan.feature_bin > $svectorDir/data.svector.$SGE_TASK_ID; 
+
+if [ $debug -gt 0 ]; then
+	cp $tmpDir/$SGE_TASK_ID.group.gspan.feature $svectorDir/feat.data.svector.$SGE_TASK_ID;
+fi
+
+\rm $tmpDir/$SGE_TASK_ID.group.gspan;
+\rm $tmpDir/$SGE_TASK_ID.group.gspan.feature;
+\rm $tmpDir/$SGE_TASK_ID.group.gspan.feature_bin
+
+\rm -R $tmpDir
+
+touch $logDir/task-$SGE_TASK_ID.finished
+cat $logDir/task-$SGE_TASK_ID.started > $logDir/task-$SGE_TASK_ID.finished
+\rm $logDir/task-$SGE_TASK_ID.started

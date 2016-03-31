@@ -1,0 +1,10 @@
+NSPDK:
+1. upgrade to multi-core processing
+2. refactor
+
+Refactor
+1. identify 3 modes: a) feature generation b) clustering c) knn
+
+2. separate APPROXIMATE from TRUE neighbourhood computation
+3. separate classes that perform CLUSTERING from kNN predictions from  output the explicit FEATURE representation
+4. make the parameter (and help) class modular
