@@ -1,0 +1,52 @@
+GLOBAL_group_size             100
+GLOBAL_hit_blacklist_overlap  0.2
+GLOBAL_iterations             2
+GLOBAL_num_clusters           10
+GLOBAL_plfold_minlen          210
+
+OPTS_RNAfold                  --noLP
+OPTS_RNAplfold                --noLP -c 0.0005 -L 200 -W 300
+OPTS_fasta2shrep_gspan        -t "3=0,5=80" -M 5 -c 20 -win 40,150 -shift 30 --cue -u --stack --seq-graph-t --seq-graph-alph
+OPTS_locarna_maligs           -p 0.001 --max-diff-am 50 --tau 50  --max-diff 100 --alifold-consensus-dp
+OPTS_locarna_model            -p 0.001 --max-diff-am 50 --tau 50  --max-diff 100 --alifold-consensus-dp --indel-open -400 --indel -200 --struct-weight 180
+OPTS_locarna_p_model          -p 0.001 --max-diff-am 50 --tau 100 --max-diff 100 --struct-weight 180 --plfold-span 150 --plfold-winsize 200 --temperature 180 --mea-beta 400 --consistency-transformation
+OPTS_locarna_paligs           -p 0.001 --max-diff-am 50 --tau 50  --max-diff 100 --indel-open -400 --indel -200 --struct-weight 180
+OPTS_nspdk                    -R 3 -D 3 -gt DIRECTED
+OPTS_nspdk_centers            -ensf 5 -oc -usn
+
+center_model_type             5
+center_subtree_max            7
+center_subtree_min            3
+center_skip_unstable          0
+center_tree_aligs             1
+center_tree_type              3
+cm_bitscore_sig               1
+cm_calibrate                  0
+cm_max_eval                   0.001
+cm_min_bitscore               20
+cm_top_only                   1
+evaluate                      0
+evaluate_class0_as_fp         1
+evaluate_min_overlap          0.51
+input_add_revcompl            0
+input_blastclust              1
+input_blastclust_id           90
+input_blastclust_len          0.9
+input_seq_min_length          30
+input_win_shift               50
+input_win_size                150
+nspdk_fcs                     1
+nspdk_greylist_num            0
+nspdk_knn_center              20
+nspdk_nhf                     500
+nspdk_nhf_max                 1000
+nspdk_nhf_step                25
+results_merge_cluster_ol      0.66
+results_merge_overlap         0.51
+results_min_cluster_size      5
+results_partition_type        soft
+results_top_num               10
+
+PATH_SGE                      /opt/sge-6.0/bin/lx24-amd64/
+PATH_TMP                      /var/tmp/
+SGE_HOSTNAME                  YOUR.SGE.HOST

@@ -1,0 +1,731 @@
+********************************************************************************
+
+GraphClust Instructions and User Guide
+
+********************************************************************************
+
+GraphClust 0.7.6
+July, 2013
+Authors: Steffen Heyne, Fabrizio Costa, Dominic Rose and Rolf Backofen
+
+Installation
+------------
+
+A current version of GraphClust you can get from:
+
+ http://www.bioinf.uni-freiburg.de/Software/GraphClust
+
+or please write an email to Steffen Heyne <heyne@informatik.uni-freiburg.de>!
+
+To install the pipeline, please extract the src archive somewhere. Then change
+into that directory and type
+
+./configure --prefix=<INSTALL_PATH_OF_YOUR_CHOICE>
+make
+make install
+
+Provide a path to "prefix" where you have write access. Usually somewhere in your
+home directory "/home/<YOUR_USERNAME>". If you use the source dir for prefix then
+all scripts and binaries reside in "<prefix>/bin"! Do not call the MASTER script
+from the source folder directly as this will fail!
+
+If 'configure' or 'make' is not successful then please contact the authors!
+
+
+Dependencies
+-------------
+
+During 'configure', GraphClust checks for several external dependencies. In order
+to compile GraphClust correctly, you need the following tools already installed:
+
+Vienna RNA Package (>=2.0)
+RNAshapes  (2.1.6)
+LocARNA (>=1.7)
+Infernal (1.0.2, 1.1 is not supported, output has changed!)
+RNAz (2.1)
+PERL (with installed modules Math::Round, threads, Threads::Queue)
+
+
+The following tools are only needed if special parameters are used:
+
+CMfinder 0.2		(only with center_model_type = 5)
+blastclust (NCBI)	(only with input_blastclust = 1)
+R (with package "evd")  (only with cm_bitscore_sig <1)
+Octave			(only with evaluate = 1)
+
+Please note: CMfinder is optional, but used in the default config file as it is
+highly recommended! 
+
+'configure' checks if the tool binaries can be found in your environment ($PATH).
+If any of the tools are already installed, then please just add their paths
+to the $PATH environment variable before calling configure or use one of the
+configure options. See ./configure --help!
+'PERL' is not checked and is assumed to be installed!
+
+
+Important install notes:
+------------------------
+
+* LocARNA
+During installation of LocARNA you need enable linking against the
+Vienna RNA 2.0 library! This you can do by calling LocARNA configure as follows:
+
+"./configure --enable-librna --prefix=<LOCARNA-install-path>
+	--with-vrna=<PATH-TO-VIENNARNA-2.0-PACKAGE>"
+
+If you do not do this, the alignment options "--alifold-consensus-dp" is deactivated
+in LocARNA and stage 7 of GraphClust will fail (The default config file uses
+this option!).
+
+
+* Vienna RNA Package
+In order to avoid some install problems with the Vienna RNA Package, you can try
+to use configure with the following options:
+
+  ./configure --prefix=<VRNA-INST-DIR> --without-kinfold --without-forester
+  	--without-perl --disable-openmp
+
+********************************************************************************
+
+User Guide
+
+********************************************************************************
+
+Quick Usage
+-----------
+
+MASTER script: "MASTER_GraphClust.pl"
+
+
+Call the MASTER script as follows:
+
+<INSTALL_PATH_OF_YOUR_CHOICE>/bin/MASTER_GraphClust.pl --root run_test_1 --fasta my_seqs.fasta --config config.default_global --verbose
+
+!!! Please use the config file from the package (examples/config.default_global)!!!
+!!! Please execute the MASTER script from the "bin" folder, NOT the one from
+!!! the source folder!!!
+
+Using the default config file, your input is fragmented into 150nt long sequences
+with 50% overlap. BlastClust is used to remove highly similar fragments.
+Clustering is performed on all remaining fragments. GraphClust runs for 2
+iterations and produce 5 candidate clusters/models per iteration. Final cluster
+results you find in <ROOT-DIR>/RESULTS (sub folders with a running index). Please
+adapt the config file to your data set!
+
+
+--------------------------------------------------------------------------------
+MASTER Options
+--------------------------------------------------------------------------------
+
+	--root <DIRECTORY>	The given directory is used for all output,
+				could be an existing dir if pipeline was interupted,
+				but this only works safe in specific cases.
+
+	--fasta <FILE>		File with your seqs in fasta format. The file is
+				processed and the final pipeline input is created in
+				<ROOT>/FASTA/data.fasta
+
+				See section "GraphClust Config" for all paramters
+				influencing the processing of input sequences,
+				like splitting into fragments, blastclust prefiltering,
+				minimal sequence length etc.
+
+	--config <FILE>		Simple text file with all configuration parameters.
+				Format is <KEY> <VALUE>
+				As key is treated the first word without spaces,
+				<VALUE> is everything after the first (or more)
+				spaces, i.e. the value iteself can contain spaces.
+
+				Only given parmaters overwrite the default values
+				(defaults are set in GraphClust.pm). Once a new
+				root directory is created, a file <ROOT>/config.start
+				and <ROOT>/config is created. If the MASTER script is
+				called again, ALWAYS the file <ROOT>/config is
+				used, no matter which file is provided with --config!
+
+				To change paramters for a existing root directory,
+				you can simple edit the file <ROOT>/config.
+				"config.start" contains the initial values.
+
+	--verbose		gives more output to stdout, useful for debugging.
+				You should use this together with all output in
+				case you have problems. Please send your issue together
+				with the output to the authors.
+
+	--threads <INT>		Start the pipleine with the given number
+				of (perl-) threads. 
+				If threads option is given together with --sge 
+				it defines the size of the requested parallel 
+				environment which is used to run NSPD in stage 5! 
+
+	--sge			Start pipeline in SGE mode. This mode is for
+				parallelization by using the SUN Grid Engine (SGE).
+				This system is useful for distributed computing.
+				It is essential that the root directory is transparent
+				to all SGE compute nodes under the same path. The same holds
+				for all used tool binaries! This mode cannot be used together
+				with threads!
+
+				The following paramters need to be set correctly:
+
+				  <SGE_HOSTNAME>	The server name which can submit
+				  			sge-jobs
+
+				  <PATH_SGE>		The path for the qsub tool
+				  			to submit a job
+
+				Please change these parameters in your copy of
+				"config.default_global" coming with the source
+				package to your settings!
+
+				The user name is set automatically to the user who
+				executes the master script. The "SGE_ROOT" environment
+				variable is used from your current host environment.
+
+				NOTE: the standard behaviour is to use "ssh" to connect to
+				the SGE_HOSTNAME. If you dont need this because your current
+				host can alreday submit SGE jobs, use "--no-ssh" option for
+				the MASTER script!
+
+	--sge-pe <NAME>		Defines the name of the parallel environment used by the SGE.
+				By default this is ste to "*" which means any available PE. Depending
+				on your local config this can be changed here. You can also include the
+				asterisk '*' symbol like --sge-pe 'pe*8*' 
+
+	--results		Create final results manually from all found clusters so far.
+				This means at least stage 8 needs to be finished for some
+				clusters. All final results you find in "<ROOT>/RESULTS"
+
+				Each cluster can be found in a subdir with a running index. You
+				find different files with the cluster data, e.g. a postscript file
+				of the alignment of the top5 cluster sequences.
+
+				In <ROOT>/RESULTS/cluster.final.stats is a short summary
+				about each found cluster.
+
+	--gl <FILE>		This starts the pipeline in "greylist" mode. <FILE> can be
+				either a FASTA file with a small number of additional sequences
+				or a set of sequence IDs (one per line) from the main FASTA
+				file given with the --fasta option.
+
+				In "greylist" mode the pipeline only predicts clusters which
+				contain at least one sequence which is part of your greylist'ed
+				subset. This is useful if you want to look for similar sequences
+				of some sequences of interest in a large dataset.
+
+--------------------------------------------------------------------------------
+Special options for MASTER_GraphClust.pl
+--------------------------------------------------------------------------------
+	--sge-pe <NAME>		In some SGE/OGE configurations it is necessary to provide 
+				the specific name or wildcard pattern for the used parallel environment.
+				Default is '*' for any available PE.  
+	
+	--no-ssh		Only for SGE mode. Do NOT use a ssh connection to the machine
+				specified under SGE_HOSTNAME. The default behavior uses a ssh
+				login.
+
+	--stage-end <1..10>
+				The pipleine is stopped at a certain stage. Within one
+				iteration all stages up to the specified stage are finished for all
+				candidate clusters first and then the next iteration is started.
+
+	--debug 		In debug mode, the feature vectors in text format will be
+	            		created and put under ROOT/SVECTOR directory! 
+	            		These files are much larger (~3x)
+				than the binary feature vectors. In addition also the
+				approximate and true k-nearest-neighbors are computed and stored
+				in special files in ROOT/SVECTOR. This takes much more time!
+				In addition all intermediate files from stage 7 are not deleted
+				in order to ease debugging in case of some error.
+
+
+--------------------------------------------------------------------------------
+Pipeline Overview
+--------------------------------------------------------------------------------
+
+The following stage numbering is used in the MASTER script. This is slightly
+different than what is written in our ISMB paper.
+
+Stage 0: Initializing GraphClust, setup directories and config file
+Stage 1: Input preprocessing (fragmentation), Blastclust filtering
+Stage 2: Generation of structures via RNAshapes and conversion into graphs
+Stage 3: Generation of graph features via NSPDK
+Stage 4: Combine all feature files into one data vector with all features
+
+            |Stage 5: min-hash based clustering of all feature vectors, output top dense candidate clusters
+            |Stage 6: Locarna based clustering of each candidate cluster, all-vs-all pairwise alignments
+ITERATATE   |Stage 7: create multiple alignments along guide tree, select best subtree, create candidate model
+            |Stage 8: Scan full input sequences with Infernal's cmsearch to find missing cluster members
+
+Stage 9: Collect final clusters and create example alignments of top cluster members
+
+--------------------------------------------------------------------------------
+Options in config file
+--------------------------------------------------------------------------------
+
+GraphClust can be configured by a config file provided with the '--config <FILE>'
+option for the MASTER script, e.g.:
+
+  MASTER_GraphClust.pl --root run_test_1 --fasta my_seqs.fasta --config config.default_global
+
+In the source package you find an example config file (examples/config.default_global).
+Please use this file as starting point if you want to modify options!
+
+Before you start clustering, you should configure GraphClust that it fits for
+your specific needs. Especially all input_* options have to be set to fit
+to your data and which kind of motifs/cluster you are expecting.
+
+Each line in the config file has to have the format: "<KEY> <VALUE>".
+
+As <KEY> is treated the first word without spaces, <VALUE> is everything after
+the first (or more) spaces, i.e. the value itself can contain spaces.
+
+Every given parameter overwrites the default value
+(built-in defaults are set in GraphClust.pm). If a parameter (<KEY>) is unknown,
+it is ignored.
+
+Once a new root directory is created, a file <ROOT>/config.start and
+<ROOT>/config is created. If the MASTER script is called again on the same
+root directory, ALWAYS the file <ROOT>/config is used, no matter which file
+is provided with --config!
+
+To change parameters for an existing root directory, edit the file <ROOT>/config.
+<ROOT>/config.start contains the initial values and is NOT used by GraphClust!
+
+--------------------------------------------------------------------------------
+config file - Important GraphClust Options
+--------------------------------------------------------------------------------
+
+GLOBAL_iterations                    2
+
+	This parameter defines the number of clustering iterations.
+	One iteration consists of the full clustering procedure comprising NSPDK,
+	LocARNA and Infernal. Already clustered instances are blacklisted and
+	will not clustered again. This allows for new clusters to emerge due to
+	changed densities. The number of clusters per iteration is defined via
+	parameter 'GLOBAL_num_clusters'.
+	In addition clustering parameters can be changed for each new iteration,
+	e.g. the number of hash functions (see parameter 'nspdk_nhf').
+
+
+
+GLOBAL_num_clusters                  5
+
+	The number of candidate clusters per iteration. The returned list comprises
+	the most dense clusters out of all possible candidate clusters.
+	This is usually a small number, although you expect many clusters.
+	Reasonable values are between 5 and e.g. 500.
+	If you want many many clusters you should stay with a small number
+	of candidate clusters per iteration but increase the number of iterations.
+	Please note that all candidate clusters are ranked by a density measure
+	which can be influenced in multiple ways.
+
+	Guideline:
+	    for <=1000 fragments    :   up to 10 num_clusters
+	    for <=10000 fragments   :  uo to 100 num_clusters
+	    for >=100,000 fragments : up to 1000 num_clusters
+
+	Below 5 and more than 1000 clusters per iteration is probably not useful.
+
+
+
+nspdk_knn_center              20
+
+	The number of instances per candidate cluster. NSPDK in stage 5 returns
+	the k nearest neighbors of a dense cluster.
+
+	A reasonable number is between 5 and 25. If you use overlapping sequence
+	windows (see input_win_shift) than you should increase this number as each
+	instance is likely to overlap with more than one similar instance.
+
+	This number also influences the density ranking of the clusters as densities
+	are based on all k nearest neighbors.
+	In the next step of the pipeline, all knn instances are checked by
+	alignment based techniques for a reliable subset of similar RNAs.
+	The best subset is returned as candidate model for the following
+	infernal search.
+
+	Guideline:
+		for input_win_shift = 100 : knn_center = ~15
+		for input_win_shift = 50  : knn_center = ~20
+		for input_win_shift = 33  : knn_center = ~25
+
+
+
+OPTS_nspdk                    -R 3 -D 4 -gt DIRECTED
+
+	The radius "R" and distance "D" of the NSPDK kernel.
+	Reasonable values are: R = 1..4 and D = 1..6.
+	Please choose high values carefully as higher values imply much more
+	subgraphs! This could increase quality, but also increase runtime
+	and memory requirements. For structured RNAs R=2 D=4, R=2 D=5 or R=3 D=3
+	seems to be sufficient.
+	For sequence-only based clustering lower values are ok.
+
+	'-gt DIRECTED' (graph type = directed) means graph edges have a
+	direction. In terms of RNA sequences this implies a direction on the graph
+	and models the orientation of the RNA.
+
+
+
+nspdk_nhf                     400
+
+	The number of hash functions used to create an instance signature by the
+	min-hash procedure. Higher values increase quality but also increase runtime.
+	GraphClust automatically increases (+50) the number of hash functions after each
+	iteration. Please see special options ("nspdk_nhf_max" and "nspdk_nhf_step").
+
+
+
+cm_min_bitscore               20
+
+	Infernal bitscore cutoff during scanning (via cmsearch). Every hit above this
+	threshold is considered as hit for a candidate cluster/model.
+	Reasonable values are >15.
+	Once a candidate model is found, the full initial input sequences are scanned
+	with that model to find missing cluster members. This influences the final cluster
+	size.
+
+	The usage of Infernal e-values is possible but this needs calibration of
+	models. However this is very time consuming.
+	See special options 'cm_calibrate' and 'cm_max_eval'.
+
+
+
+input_win_size                150
+
+	All input sequences are splitted into fragments of this length. The
+	shift of the sliding window can be defined via option "input_win_shift".
+	This paramter reflects the expected length of signals to be found.
+	Slightly larger windows are usually ok. Too small windows can disturb
+	existing signals. Reasonable window sizes are <75..250>, but depend on
+	your input data and what kind of motifs/cluster you want to find.
+	The last fragments of a sequence are treated a bit special in order to
+	achive equal length fragments. See other special parameters.
+
+
+
+input_win_shift               50
+
+	Relative window size in % for window shift during input preprocessing.
+	Reasonable values are 66, 50, 33 or 25. Please note that a small shift
+	results in much more fragments for clustering. The benefit is that RNA
+	motifs/structures are not destroyed by arbitrary split points. Smaller
+	shifts usually increase the cluster quality. Too small shifts (<20) are not
+	recommended as a dense center is "polluted" by overlapping fragments and
+	no other occurences in the dataset can be found.
+
+
+
+--------------------------------------------------------------------------------
+ALL/Special Options
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+GLOBAL MASTER Options -
+--------------------------------------------------------------------------------
+
+GLOBAL_iterations                    2
+GLOBAL_group_size                    50
+GLOBAL_hit_blacklist_overlap         0.2
+
+--------------------------------------------------------------------------------
+Stage 1 options - Input Preprocessing
+--------------------------------------------------------------------------------
+
+input_win_size                150	(length in nt)
+
+	All input sequences are splitted into fragments of this length. The
+	shift of the sliding window can be defined via option "input_win_shift".
+	This paramter reflects the expected length of signals to be found.
+	Slightly larger windows are usually ok. Too small windows can disturb
+	existing signals. Reasonable window sizes are <75..250>, but depend on
+	your input data and what kind of motifs/cluster you want to find.
+	The last fragments of a sequence are treated a bit special in order to
+	achive equal length fragments.
+
+input_win_shift               50	(% of input_win_size)
+
+	Relative window size in % for window shift during input preprocessing.
+	Reasonable values are 66, 50 or 25. Please note that a small shift
+	results in much more fragments for clustering.
+
+input_add_revcompl            1		(true/false)
+
+	Adding reverse complement sequences of your input sequences. This implies
+	scanning by cmsearch on reverse strand in stage 8 and you don't need to set
+	'cm_top_only 0' (i.e. force cmserach to scan on both strands).
+
+input_blastclust              1		(true/false)
+
+	Apply blastclust (1=ON,0=OFF) as prefilter to identify near identicals.
+	From each blastclust cluster only one sequence is kept. Please note that
+	blastclust is applied on fragments resulting from the sliding window.
+
+input_blastclust_id           90	(% sequence identity)
+
+	Blastclust sequence identity cutoff in %, everything with higher
+	sequnence identity is treated as cluster
+
+input_blastclust_len          0.90 	(length fraction)
+
+	Blastclust length threshold. Sequence identity is checked for this
+	length fraction.
+
+
+input_seq_min_length          100	(length in nt)
+
+	Minimal length of input sequences. Every input sequence below that
+	length is ignored completely during clustering.
+
+--------------------------------------------------------------------------------
+Stage 2 options - Structure Generation (RNAshapes) and graph conversion
+--------------------------------------------------------------------------------
+
+OPTS_fasta2shrep_gspan        -t "3=0,5=80" -M 5 -c 20 -win 40,150 -shift 30 --cue -u --stack
+
+	This option contains all option passed to fasta2shrep_gspan.pl script. All
+	options here influence the considered structures (and their features) for
+	clustering by NSPDK (stage 5). For each fragment of  your input sequence we
+	use RNAshapes to create a set of structures. Please see the script
+	'fasta2shrep_gspan.pl --help' for more information on all possible
+	parameters.
+
+	The default parameters for example consider for each input fragment again a
+	window of size 40nt and 150nt with a window shift of 30%. This allows to
+	consider local structures as well as global structures for a fragment
+	(global means here in respect to the fragment size which is already local in
+	respect to your input sequences if you use 'input_win_size' and
+	input_win_shift').
+	From each such RNAshape window we take the top 5 shreps (suboptimal
+	structures for the top 5 shapes) within 20% of the mfe energy of that window
+	and convert them into graphs.
+	As shape level (abstraction level) we use 3 for short sequences and 5 for
+	sequences >= 80nt. Please see also RNAshapes documentation for all these
+	terms.
+	'cue' cuts dangling ends from considered structures and '-u' throws away
+	unstable structures. '--stack' add special graph labels to treat stackings
+	explicitly.
+
+--------------------------------------------------------------------------------
+Stage 3 options - NSPDK feature generation
+--------------------------------------------------------------------------------
+
+OPTS_nspdk                    -R 2 -D 5 -gt DIRECTED
+
+	This option contains all paramters passed to NSPDK for feature creation.
+
+	The radius "R" and distance "D" of the NSPDK kernel.
+	Resonable values are: R = 1..4 and D = 1..6.
+	Please choose high values carefully as higher values imply much more
+	subgraphs! This could increase quality, but also increase runtime
+	and memory requirements. For structured RNAs R=2 D=4 or R=2 D=5 seems to be
+	sufficent. For sequence-only based clustering lower values are ok.
+
+	'-gt DIRECTED' (graph type = directed) means graph edges have a
+	direction. In terms of RNA sequences this gives features a 5' -> 3'
+	orientation.
+
+
+--------------------------------------------------------------------------------
+Stage 5 options - NSPDK clustering
+--------------------------------------------------------------------------------
+
+GLOBAL_num_clusters			5
+
+	The number of candidate clusters per iteration. The returned list comprises
+	the most dense clusters out of all possible candidate clusters.
+	This is ususally a small number, although you expect many clusters.
+	Reasonable values are between 1 and e.g. 500.
+	If you want many clusters you should stay with a small number
+	of candidate clusters per iteration but increase the number of iterations.
+	Please note that all candidate clusters are ranked by a density measure
+	which can be influenced in multiple ways.
+
+
+nspdk_knn_center              15
+
+	The number of instances per candidate cluster. NSPDK in stage 5 returns
+	the k nearest neighbours of a dense cluster.
+
+	A resonable number is between 5 and 25. If you use overlapping sequence
+	windows (see input_win_shift) than you should increase this number as each
+	instance is likely to overlap with more than one similar instance.
+
+	This number also influences the density ranking of the clusters as densities
+	are based on all k nearest neighbours.
+	In the next step of the pipeline, all knn instances are checked by
+	alignment based techniques for a reliable subset of similar RNAs.
+	The best subset is returned as candidate model for the following
+	infernal search.
+
+
+nspdk_nhf                     400
+
+	The number of hash functions used to create an instance signature by the
+	min-hash procedure. Higher values increase quality but also increase runtime.
+	GraphClust automatically increases (+50) the number of hash functions after each
+	iteration. Please see special options ("nspdk_nhf_max" and "nspdk_nhf_step").
+
+nspdk_nhf_step                50
+
+	The number of hash functions is increased by this value after each iteration.
+	Reasonable numbers are between 0..100. A value >0 is beneficial to alter
+	overall densities for every new iteration.
+
+nspdk_nhf_max                 1000
+
+	Maximal number of hash functions. If the maximum is reached, the number of
+	hash funtions is not increased further. New iterations are still possible.
+
+nspdk_fcs                     1
+
+	This parameter can be used to speed up the clustering of very large datasets.
+	In case you have 10K or even 100K sequences, this paramter determines the
+	size of a random fraction of sequence fragments on which the density is
+	calculated.
+	Suppose there is a cluster of 3 sequences, there should be no
+	difference to calculate the density of one of the three as we still consider
+	all elements to get the actual density.
+	This speeds up the second phase of stage 5. The min-hash data structure
+	(bin data structure with the instance signatures) is still build for
+	all instances.
+
+OPTS_nspdk_centers            -ensf 5 -oc -fde
+
+	This option contains all additional parameters passed to NSPDK for
+	feature clustering. Please only add paramters which are NOT handled by
+	the MASTER (all options with NSPDK_*, see above:  'nspdk_nhf',
+	'nspdk_nhf_step' ...)
+
+--------------------------------------------------------------------------------
+Stage 6 options - Locarna based alignment for each candidate cluster
+--------------------------------------------------------------------------------
+
+OPTS_locarna_paligs           -p 0.001 --max-diff-am 50 --tau 50 --indel-open -400 --indel -200 --struct-weight 180 --max-diff 100
+
+	This option contains all additional parameters passed to 'locarna'
+	(binary for pairwise alignment) which are different from locarna defaults.
+
+	LocARNA is used create a guide tree of all fragments within one
+	candidate cluster. To do so we first create all vs. all pairwise
+	alignments of all fragments within one candidate cluster.
+
+--------------------------------------------------------------------------------
+Stage 7 options - create multiple alignments along guide tree, select best
+                  subtree, create candidate model
+--------------------------------------------------------------------------------
+
+center_subtree_max            7
+center_subtree_min            3
+
+	Determines the minimal and maximal size (leafs=sequences) of subtrees which
+	are considered for initial motif models. For each subtree within that range
+	of a given guied tree a multiple alignments is created.
+
+center_tree_type              3
+
+	Determines how we create the guide tree for a dense center:
+
+		1: create guide tree by aligning all-vs-all sequences from dense center
+		3: use kernel based similarities to creat eguide tree, much faster than
+		   method 1 as we can omit all pairwise alignments
+
+
+center_tree_aligs             1
+
+	Determines how the guide tree is aligned:
+
+		1: use LocARNA to create multiple alignments for subtrees, use locarna
+		   options 'OPTS_locarna_maligs'
+		2: use locarna-p to create multiple alignments for subtrees,
+		   take more time than 1, use locarna-p options 'OPTS_locarna_p_model'
+
+center_model_type             5
+
+	All subtrees and their corresponding multiple alignments are ranked by
+	features like mean pairwise identity, SCI and locarna score.
+	From the best subtree a motif model is created by one of the following
+	methods. CMfinder (center_model_type = 5) is recommended, but you have to
+	install it first!
+
+  		1: use multiple alignment from subtree as motif model
+  		2: realign subtree with locarna with options 'OPTS_locarna_model'
+  		3: realign subtree with locarnaP with options 'OPTS_locarna_p_model'
+  		4: realign subtree with locarnaP and refine borders based on relplot signal
+  		5: cmfinder, try to extend motif with seqs from extended tree pool
+  		   first realign with locarnaP if not already done, use always rel-signal
+
+
+OPTS_locarna_maligs           -p 0.001 --max-diff-am 50 --tau 50 --alifold-consensus-dp --max-diff 100
+OPTS_locarna_model            -p 0.001 --max-diff-am 50 --tau 50 --alifold-consensus-dp
+OPTS_locarna_p_model          -p 0.001 --max-diff-am 50 --tau 50  --struct-weight 160 --plfold-span 150 --plfold-winsize 200 --temperature 180 --mea-beta 400 --consistency-transformation
+
+
+
+The following options influence the base-pair probabillity matrices use by
+locarna. Usually RNAplfold can be used for local folding on longer sequences.
+For Sequences up to ~150-200nt also RNAfold can be used for global folding.
+
+
+GLOBAL_plfold_minlen          150
+
+	Determines the minimal length of a sequences for which RNAplfold is used.
+
+
+OPTS_RNAfold                  --noLP
+OPTS_RNAplfold                --noLP -c 0.0005 -L 150 -W 200
+
+	Options are given to either RNAplfold or RNAfold.
+
+--------------------------------------------------------------------------------
+Stage 8 options - Infernal scanning
+--------------------------------------------------------------------------------
+
+cm_min_bitscore               20
+
+	Minimal score to consider a cmsearch hit a true hit for a cluster (while
+	scanning with the motif model).
+
+cm_calibrate                  0
+
+	This turns on(1) / off(0) calibration of candidate models (covariance models)
+	via cmcalibrate. Hits are filtered ONLY by a given e-value cutoff. See option
+	'cm_max_eval'. The option 'cm_min_bitscore' has no influence anymore.
+
+cm_max_eval                   0.001
+
+	E-value cutoff for cmsearch hits during scanning with calibrated candidate
+	models.
+
+cm_top_only                   1
+cm_bitscore_sig               1
+
+--------------------------------------------------------------------------------
+Stage 9 options - Results
+--------------------------------------------------------------------------------
+
+results_top_num               20
+
+	This option creates in addition to the top 5 alignment an additional
+	alignment of the 'results_top_num' sequences according to the cmsearch
+	bit score. The corresponding files contain 'top' in the filename in
+	the results folder. This alignment is for a quick analysis only! Your own
+	downstream analysis is necessary for each cluster.
+
+results_merge_cluster_ol      0.66
+results_merge_overlap         0.51
+results_min_cluster_size      2
+results_partition_type        soft
+
+--------------------------------------------------------------------------------
+Special options
+--------------------------------------------------------------------------------
+
+evaluate                      0
+evaluate_class0_as_fp         1
+evaluate_min_overlap          0.51
+
+	Evaluation mode. This is a special mode to calculate clustering performance
+	via f-measure etc. Please note that the input fasta needs special information
+	in each sequence header with the information of all known signals!

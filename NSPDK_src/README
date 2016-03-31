@@ -1,0 +1,81 @@
+#-------------------------------------------------------------------------------
+#standard train-test cycle
+pfx=std; ./svmsgdnspdk -a TRAIN -d bursi.train.gspan -t bursi.train.target -m $pfx.md -pfx "$pfx." -ll 1 2 5 ; ./svmsgdnspdk -a TEST -d bursi.test.gspan -m $pfx.md -pfx "$pfx." ; paste bursi.test.target $pfx.output.predictions | awk '{print $1,$3}' | ./perf -APR -ROC -ACC -t 0 -PRF 2>/dev/null | awk '{printf("%s %s ",$1,$2)}END{printf("\n")}'
+
+#-------------------------------------------------------------------------------
+#standard intra-instance regularization train-test cycle
+pfx=iir; ./svmsgdnspdk -iiropt -a TRAIN -d bursi.train.gspan -t bursi.train.target -m $pfx.md -pfx "$pfx." -ll 1 1 4 ; ./svmsgdnspdk -a TEST -d bursi.test.gspan -m $pfx.md -pfx "$pfx." ; paste bursi.test.target $pfx.output.predictions | awk '{print $1,$3}' | ./perf -APR -ROC -ACC -t 0 -PRF 2>/dev/null | awk '{printf("%s %s ",$1,$2)}END{printf("\n")}'
+
+
+#-------------------------------------------------------------------------------
+#learning curve
+LC=10; \rm dat_lc; for r in $(seq 1 10); do ./svmsgdnspdk -a LEARNINGCURVE -d bursi.gspan -t bursi.target -ll 1 2 5 -lc $LC -rs $r -fc | tee log_lc; for i in $(seq 1 $LC); do  dim=$(cat output.lc_predictions_train_fold$i | wc -l); echo -n "$dim " >>dat_lc; cat output.lc_predictions_train_fold$i | awk '{print $2,$4}'  | ./perf -APR -ROC -ACC -t 0 -PRF 2>/dev/null | awk '{printf("%s %s ",$1,$2)}END{printf("\n")}' >>dat_lc; cat output.lc_predictions_test_fold$i | awk '{print $2,$4}'  | ./perf -APR -ROC -ACC -t 0 -PRF 2>/dev/null | awk '{printf("%s %s ",$1,$2)}END{printf("\n")}' >>dat_lc; done; done
+cat dat_lc | awk 'NR%2==1{printf("%s ",$0)}NR%2==0{print $0}' | column -t > dat
+
+
+cat <<EOF >tmp_plot_command
+set term postscript enhanced color
+set grid
+set xlabel "Training set size"
+set ylabel "Area Under ROC Curve"
+set terminal postscript eps color enhanced "Helvetica" 11
+set out 'LearningCurveROC.ps'
+ftr(x)=atr-btr/(x+ctr)
+fts(x)=ats-bts/(x+cts)
+fit ftr(x) 'dat' u 1:9  via atr,btr,ctr
+fit fts(x) 'dat' u 1:17  via ats,bts,cts
+plot 'dat' u 1:9 t "" w p lt 1, '' u 1:17 t "" w p lt 2, ftr(x) t "Train" w l lt 1 lw 2, fts(x) t "Test"  w l lt 2 lw 2
+EOF
+gnuplot tmp_plot_command
+evince LearningCurveROC.ps
+ 
+
+cat <<EOF >tmp_plot_command
+set term postscript enhanced color
+set grid
+set xlabel "Training set size"
+set ylabel "Area Under Precision Recall Curve"
+set terminal postscript eps color enhanced "Helvetica" 11
+set out 'LearningCurveAPR.ps'
+ftr(x)=atr-btr/(x+ctr)
+fts(x)=ats-bts/(x+cts)
+fit ftr(x) 'dat' u 1:7  via atr,btr,ctr
+fit fts(x) 'dat' u 1:15  via ats,bts,cts
+plot 'dat' u 1:7 t "" w p lt 1, '' u 1:15 t "" w p lt 2, ftr(x) t "Train" w l lt 1 lw 2, fts(x) t "Test"  w l lt 2 lw 2
+EOF
+gnuplot tmp_plot_command
+evince LearningCurveAPR.ps
+
+
+
+#-------------------------------------------------------------------------------
+#one class semi-supervised only negative
+for k in $(seq 1 10); do cat bursi.train.target | awk -v P=.4 -v CS=$k 'BEGIN{srand(CS)}{if(rand()>P){if($1==-1){print 0}else{print $1}}else{print 0}}' > bursi.train.oneclass.target;np=$(cat bursi.train.oneclass.target | sort | uniq -c | awk '$2==1{print $1}'); for i in $(seq .88 .005 .99); do echo -n "$np $i "; ./svmsgdnspdk -rs 1 -d bursi.train.gspan -t bursi.train.oneclass.target -ll 2 1 0 2 0 -sst 1 -ssn -tm PERFORMANCE -dt $i -ssi 10 -ocsr 10 -fc > /dev/null ; ./svmsgdnspdk -a TEST -d bursi.test.gspan > /dev/null; paste bursi.test.target output.predictions | awk '{print $1,$3}' | ./perf -APR -ROC -ACC -t 0 -PRF 2>/dev/null | awk '{printf("%s %s ",$1,$2)}END{printf("\n")}'; done; done | tee res
+#sort datapoints
+cat res | awk 'NF>3' | sort -k2,2g > dat
+#plot line
+plot 'dat' u 2:10 w p, '' u 2:10:(1.0) smooth bezier lw 4
+
+
+#-------------------------------------------------------------------------------
+#ensemble method
+CV=3
+./svmsgdnspdk -d bursi.train.gspan -t bursi.train.target -ll 1 2 5 -a CROSSVALIDATION -cv $CV
+for i in $(seq 1 $CV); do ./svmsgdnspdk -a TEST -d bursi.test.gspan -m model_$i -pfx m${i}_ ; done
+paste m*_output.predictions | awk '{s=0;for(i=2;i<=NF;i=i+2){s+=$(i)}print s*2/NF}' | paste bursi.test.target - | ./perf -APR -ROC -ACC -t 0 -PRF 2>/dev/null | awk '{printf("%s %s ",$1,$2)}END{printf("\n")}';
+
+for i in $(seq 1 $CV); do ./svmsgdnspdk -a TEST-PART -d bursi.test.gspan -m model_$i -pfx m${i}_ ; done
+paste m*_output.vertex_margins | awk '{s=0;for(i=3; i<=NF;i=i+3){s+=$(i)} print $1,$2,s*3/NF}' > output.vertex_margins
+
+
+#ensemble over one class
+CV=5
+for i in $(seq .1 .1 .9) 
+do 
+echo -n "$i " ;
+\rm -f model* *output.predictions
+cat bursi.train.gspan | awk -v FF=bursi.train.target 'BEGIN{while(getline < FF){H[++c]=$1;}} /^t/{n++} H[n]==1{print $0}' > bursi.only_pos.gspan
+./svmsgdnspdk  -a CROSSVALIDATION -cv $CV -d bursi.only_pos.gspan -t bursi.only_pos.target -ll  1 2 4 -ocsr 1 -octss $i >/dev/null
+for j in $(seq 1 $CV); do ./svmsgdnspdk -a TEST -d bursi.test.gspan -m model_$j -pfx m${j}_  >/dev/null; done
+paste m*_output.predictions | awk '{s=0;for(i=2;i<=NF;i=i+2){s+=$(i)}print s*2/NF}' | paste bursi.test.target - | ./perf -APR -ROC -ACC -t 0 -PRF 2>/dev/null | awk '{printf("%s %s ",$1,$2)}END{printf("\n")}';
+done

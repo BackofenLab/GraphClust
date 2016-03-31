@@ -1,0 +1,8 @@
+Pgma is a simple program for building WPGMA trees.
+
+Install by
+./configure
+make
+make install
+
+USAGE: pgma <names> <distance-list>

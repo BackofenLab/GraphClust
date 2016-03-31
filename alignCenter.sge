@@ -1,0 +1,67 @@
+#!/bin/bash
+#$ -cwd
+#$ -l h_vmem=4G	
+
+#### all paths that need to be predefined
+
+## perl version
+export PATH=/usr/local/perl/bin:$PATH
+
+# all parameters for the shell script
+working_dir=$1
+logDir=$2
+job_num=$3
+
+shift 3
+
+## set task ids correctly
+## job_num needs to be set in case of non-sge tasks, then SGE_TASK_ID is set to this variable
+## JOB_ID is set to "LOCAL"
+
+if [ -z "$job_num" ]; then
+	echo "No job_num found! Set job_num to 0!"
+	let job_num=0
+fi
+
+if [ -z "$SGE_TASK_ID" ]; then
+	echo "No SGE environment found! Set SGE_TASK_ID to 0!"
+	let SGE_TASK_ID=$job_num
+fi
+
+if [ "$SGE_TASK_ID" = "undefined" ]; then
+	echo "No SGE array job found! Set SGE_TASK_ID to $job_num !"
+	let SGE_TASK_ID=$job_num
+fi
+
+cd $working_dir
+
+echo $@ --task-id $SGE_TASK_ID >> $logDir/cmd.opts
+
+touch $logDir/task-$SGE_TASK_ID.started
+
+\time --version 1>/dev/null 2>/dev/null
+timefail=$?
+
+## check if we have gnu time, not installed on MAC OSX 
+if [ "$timefail" != "0" ]; then
+ 	echo "gnu time failed! Run without time logging...";
+ 	echo "0.0:0.0" > $logDir/task-$SGE_TASK_ID.started
+ 	$@ --task-id $SGE_TASK_ID
+else
+	\time -p -o $logDir/task-$SGE_TASK_ID.started --format %e:%U $@ --task-id $SGE_TASK_ID
+fi 
+
+#\time -p -o $logDir/task-$SGE_TASK_ID.started --format %e:%U $@ --sge-taskid $SGE_TASK_ID  
+
+## last call ended with error?
+fail=$?
+		
+if [ "$fail" != "0" ]; then
+	echo $fail >  $logDir/task-$SGE_TASK_ID.started
+	\mv $logDir/task-$SGE_TASK_ID.started $logDir/task-$SGE_TASK_ID.error
+	exit 1;
+fi
+
+touch $logDir/task-$SGE_TASK_ID.finished
+cat $logDir/task-$SGE_TASK_ID.started > $logDir/task-$SGE_TASK_ID.finished
+\rm $logDir/task-$SGE_TASK_ID.started

@@ -1,0 +1,95 @@
+
+GraphClust
+
+Authors: Steffen Heyne, Fabrizio Costa, Dominic Rose and Rolf Backofen
+
+Changelog
+
+Mai 7, 2013
+	GraphClust-0.7.5 release
+	make time calls working on OSX 10.8
+	add -n option to RNAz that no sampling is used (faster)
+	implement makecol in perl
+
+April 2, 2013
+	GraphClust-0.7.4 release
+	bugfixes: merging seqs on reverse strand (CMFINDER only),
+	evaluation mode fix if class 0 is missing
+	SCI calculation based again on RNAalifold
+
+March 19, 2013
+	GraphClust-0.7.3 release
+	unstructured models are skipped by default
+
+February 11, 2013
+	GraphClust-0.7.2 release
+	bugfixes for SCI=0
+	
+
+February 7, 2013
+	GraphClust-0.7.1 release
+	Bugfixes
+	simple NSPDK parallelization via openMP
+	parallel environments in SGE/OGE can be used, MASTER --threads <NUM> option
+	defines size of parallel environment in SGE mode, othweise num threads
+	
+
+January 29, 2013
+	GraphClust-0.7 release
+	major refactoring in stage 7 (alignCenter.pl)
+	CMfinder for center refinement can be used with 'center_model_type = 5'
+	omit RNAsoup and use own tree align function
+	parameter name changes, default parameter changes
+
+
+September 24, 2012
+	Master can be used with threads now! Perl needs to support it
+	Job submission refactored, interruption is more clean now
+	Results refactored again
+	Multiple signals per input seq possible in evaluation mode
+	Signal classes can have names
+	Master output more pipe-friendly in non-verbose mode. It now prints
+	information only for changes jobs.
+	bugfix: configured ocatve pathis now really used, column did not work
+	for large files
+
+August 23, 2012
+	GraphClust-0.6-rc3 release
+	MASTER manpage via POD, see MASTER_GraphClust.pl --help and --man
+
+August 21, 2012
+	new procedure for input splitting/ fragmentation, we have more equal
+	length frags now
+	add some new config options for used partitition file
+	locarna matrix overlap check bugfix
+	merged partition: bugfix for overlapping fragments
+	bugfix: bug in consMFE script if we have parallel instances,
+	bugfix in simplealign selection
+
+August 17, 2012
+	Input preprocessing a bit changed, split and shift results in more equal length
+	fragments, because we allow overlap for last fragment by default, min-len
+	paramter is now only used to define the minimal length for input sequences
+	new NSPDK version
+	evaluation: class 0 signals can be ignored for fp-rates
+
+August 13, 2012
+	force cmsearch to always scan reverse strand if we added revcompl seqs by
+	option 'input_add_revcompl=1'
+	make sub fragment_overlap strand aware, ignore strand only for blacklist of
+	data.svector (idea is that on revcompl of final hit is no other signal)
+
+August 10, 2012
+	bugfix RNAsoup: wrong aln file in xml tree
+	Readme updates
+	bugfix in config.default_global
+	in greylist mode: add revcompl only for non-greylist sequences
+	in greylist mode: filter final results to keep only clusters which are
+	contain both greylist members and non-greylist members
+	add support for enconding of fixed structures provided in input
+	via #FS meta tag at end of line
+
+August 2, 2012
+	Initial public release, 0.6-rc2
+
+

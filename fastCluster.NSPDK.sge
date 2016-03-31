@@ -1,0 +1,66 @@
+#!/bin/bash
+#$ -cwd
+#$ -l h_vmem=3G
+
+# all parameters for the shell script
+working_dir=$1
+logDir=$2
+job_num=$3
+
+#threads=$4
+
+shift 3
+
+if [ -z "$job_num" ]; then
+	echo "No job_num found! Set job_num to 0!"
+	let job_num=0
+fi
+
+if [ -z "$SGE_TASK_ID" ]; then
+	echo "No SGE environment found! Set SGE_TASK_ID to 0!"
+	let SGE_TASK_ID=$job_num
+	JOB_ID="LOCAL"
+fi
+
+if [ "$SGE_TASK_ID" = "undefined" ]; then
+	echo "No SGE array job found! Set SGE_TASK_ID to $job_num !"
+	let SGE_TASK_ID=$job_num
+fi
+
+## set max num threads for NSPDK, important for SGE without parallel environment!
+#export OMP_NUM_THREADS=$threads
+#export OMP_STACKSIZE=10M
+
+#################################
+
+cd $working_dir
+
+
+#echo $JOB_ID > $logDir/TASKID
+touch $logDir/task-$SGE_TASK_ID.started
+
+\time --version 1>/dev/null 2>/dev/null
+timefail=$?
+
+if [ "$timefail" != "0" ]; then
+ 	echo "gnu time failed! Run without time logging...";
+ 	echo "0.0:0.0" > $logDir/task-$SGE_TASK_ID.started
+ 	$@
+else
+	\time -p -o $logDir/task-$SGE_TASK_ID.started --format %e:%U $@
+fi 
+
+#\time -p -o $logDir/task-$SGE_TASK_ID.started -a --format %e:%U $@
+
+## last call ended with error?
+fail=$?
+		
+if [ "$fail" != "0" ]; then
+	echo $fail >  $logDir/task-$SGE_TASK_ID.started
+	\mv $logDir/task-$SGE_TASK_ID.started $logDir/task-$SGE_TASK_ID.error
+	exit 1;
+fi
+
+touch $logDir/task-$SGE_TASK_ID.finished
+cat $logDir/task-$SGE_TASK_ID.started > $logDir/task-$SGE_TASK_ID.finished
+\rm $logDir/task-$SGE_TASK_ID.started
