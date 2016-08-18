@@ -7,6 +7,7 @@ package GraphClust;
 ## This perl module contains some general functions for GraphLClust
 ##
 
+
 use strict;
 use warnings;
 use Cwd qw(abs_path getcwd);
@@ -2034,39 +2035,42 @@ sub read_CM_tabfile_ext {
   my $significance = $_[3];
   my $tab_name     = $_[4];
 
+
   open( TABRES, "$tab_file" ) or die "$tab_file tab_result file could not be loaded!";
 
   my @cm_hit_scores = ();
 
   my $use_e_values = 0;
   my $lineLast     = "";
+
   while ( my $line = <TABRES> ) {
 
     $lineLast = $line;
     next if ( $line =~ /^\#/ );    ## ignore comments in cmsearch output
     chomp $line;
     my @line = split( " ", $line );
-
-    next if ( @line != 9 );
-
-    $use_e_values = 1 if ( $line[7] ne "-" );
+#    print "line = @line \n";
+#    print "line[1] = $line[0] \n";
+#    next if ( @line != 17 );
+#    print "nextic heto \n";
+    $use_e_values = 1 if ( $line[15] ne "-" );
 
     my $strand = "+";
     my $hit    = {
-      SEQID    => $line[1],
-      START    => $line[2],
-      STOP     => $line[3],
-      BITSCORE => $line[6],
-      EVALUE   => $line[7],
+      SEQID    => $line[0],
+      START    => $line[7],
+      STOP     => $line[8],
+      BITSCORE => $line[14],
+      EVALUE   => $line[15],
       STRAND   => $strand,
       NAME     => $tab_name
     };
-
+#    print "seq @line \n";
     ## swap start for reverse strand hits, we treat all hits based on + strand
     if ( $line[2] > $line[3] ) {
       $strand        = "-";
-      $hit->{START}  = $line[3];
-      $hit->{STOP}   = $line[2];
+      $hit->{START}  = $line[8];
+      $hit->{STOP}   = $line[7];
       $hit->{STRAND} = $strand;
     }
 

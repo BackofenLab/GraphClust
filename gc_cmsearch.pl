@@ -26,15 +26,14 @@ my $verbose;
 
 
 ## infernal 1.1
-# my $OPTS_cmsearch = " -g --rfam --noali --cpu 1";
-## infernal 1.1: --refine
-# my $OPTS_cmbuild = "";
-# my $OPTS_cmcalibrate = " -L 0.01 --cpu 1 ";
+my $OPTS_cmsearch = " -g --nohmm --noali --cpu 1";
+my $OPTS_cmbuild = "";
+my $OPTS_cmcalibrate = " -L 0.01 --cpu 1 ";
 
 ## infernal 1.0.2
-my $OPTS_cmsearch = " -g --fil-no-hmm --noalign ";
-my $OPTS_cmbuild = "";
-my $OPTS_cmcalibrate = " -L 0.01 ";
+#my $OPTS_cmsearch = " -g --fil-no-hmm --noalign ";
+#my $OPTS_cmbuild = "";
+#my $OPTS_cmcalibrate = " -L 0.01 ";
 
 usage()
   unless GetOptions(
@@ -90,11 +89,12 @@ system($cmd_cmbuild);
 ### calibrate the covariance model |
 ####################################
 
-if ($use_cmcalibrate ) {
+#### for infernal 1.1 calibration is mandatory
+#if ($use_cmcalibrate ) {
 
   my $cmd_cal = "$infernal_path/cmcalibrate $OPTS_cmcalibrate $tgtdir/$target_file.cm";
   system($cmd_cal);
-}
+#}
 #####################################################################################################
 ### search the database with the calibrated covariance model and report the findings into a tabfile |
 #####################################################################################################
@@ -112,8 +112,8 @@ if ($use_cmcalibrate ) {
 ## add '-o $e/$target_file.cm.alignments' if also alignment file should be created
 
 my $tmp_tab_file = "$tgtdir/$target_file.cm.tab_tmp";
-my $cmd_cms = "$infernal_path/cmsearch $OPTS_cmsearch --tabfile $tmp_tab_file ";
-#my $cmd_cms = "$infernal_path/cmsearch  $OPTS_cmsearch -tblout $tmp_tab_file ";
+#my $cmd_cms = "$infernal_path/cmsearch $OPTS_cmsearch --tabfile $tmp_tab_file ";
+my $cmd_cms = "$infernal_path/cmsearch  $OPTS_cmsearch --tblout $tmp_tab_file ";
 $cmd_cms .= "--toponly " if ($cm_top_only);
 my $min_bitscore = min(10,$cm_min_bitscore);
 $cmd_cms .= "-T $min_bitscore " if ($cm_bitscore_sig == 1);
