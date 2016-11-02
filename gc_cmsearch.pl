@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 use warnings;
 use strict;
 
@@ -22,18 +22,14 @@ my $tgtdir;
 my $evaluate;
 my $use_cmcalibrate;
 my $in_root_dir;
-my $verbose;
+my $verbose = 1;
+my $newInf;
+my $OPTS_cmsearch;
+my $OPTS_cmbuild;
+my $OPTS_cmcalibrate;
 
 
-## infernal 1.1
-my $OPTS_cmsearch = " -g --nohmm --noali --cpu 1";
-my $OPTS_cmbuild = "";
-my $OPTS_cmcalibrate = " -L 0.01 --cpu 1 ";
 
-## infernal 1.0.2
-#my $OPTS_cmsearch = " -g --fil-no-hmm --noalign ";
-#my $OPTS_cmbuild = "";
-#my $OPTS_cmcalibrate = " -L 0.01 ";
 
 usage()
   unless GetOptions(
@@ -42,7 +38,8 @@ usage()
   "stk=s"            => \$stk_file,
   "db=s"             => \$db,
   "calibrate"        => \$use_cmcalibrate,
-  "verbose"          => \$verbose
+  "verbose"          => \$verbose,
+  "infernal_1_1"     => \$newInf
   );
 
 ################################################################################
@@ -51,9 +48,33 @@ usage()
 SUBSECTION("options loaded for gc_cmsearch.pl");
 printConfig( \%CONFIG ) if ($verbose);
 
+
+
+## infernal 1.1
+if($newInf){
+        $OPTS_cmsearch = " -g --nohmm --noali --cpu 1 ";
+        $OPTS_cmbuild = "";
+        $OPTS_cmcalibrate = " -L 0.01 --cpu 1 ";
+}
+
+## infernal 1.0.2
+else{
+        $OPTS_cmsearch = " -g --fil-no-hmm --noalign ";
+        $OPTS_cmbuild = "";
+        $OPTS_cmcalibrate = " -L 0.01 ";
+}
+
+
+
+my $infernal_path;
 my $cm_top_only = 1;
 $cm_top_only = $CONFIG{cm_top_only};
-my $infernal_path = $CONFIG{PATH_INFERNAL};
+if($newInf){
+	$infernal_path = $CONFIG{PATH_INFERNAL_1_1};
+}
+else{
+	$infernal_path = $CONFIG{PATH_INFERNAL_1_0};
+}
 my $cm_bitscore_sig = $CONFIG{cm_bitscore_sig};
 my $cm_min_bitscore = $CONFIG{cm_min_bitscore};
 
@@ -90,11 +111,23 @@ system($cmd_cmbuild);
 ####################################
 
 #### for infernal 1.1 calibration is mandatory
-#if ($use_cmcalibrate ) {
+my $cmd_cal="";
 
-  my $cmd_cal = "$infernal_path/cmcalibrate $OPTS_cmcalibrate $tgtdir/$target_file.cm";
-  system($cmd_cal);
-#}
+if($newInf){
+
+	$cmd_cal = "$infernal_path/cmcalibrate $OPTS_cmcalibrate $tgtdir/$target_file.cm";
+	system($cmd_cal);
+}
+else{
+	print "####################### elsi  mejja #######################\n";
+
+	if ($use_cmcalibrate ) {
+
+	  $cmd_cal = "$infernal_path/cmcalibrate $OPTS_cmcalibrate $tgtdir/$target_file.cm";
+	  system($cmd_cal);
+  	}
+}
+
 #####################################################################################################
 ### search the database with the calibrated covariance model and report the findings into a tabfile |
 #####################################################################################################
@@ -112,18 +145,25 @@ system($cmd_cmbuild);
 ## add '-o $e/$target_file.cm.alignments' if also alignment file should be created
 
 my $tmp_tab_file = "$tgtdir/$target_file.cm.tab_tmp";
-#my $cmd_cms = "$infernal_path/cmsearch $OPTS_cmsearch --tabfile $tmp_tab_file ";
-my $cmd_cms = "$infernal_path/cmsearch  $OPTS_cmsearch --tblout $tmp_tab_file ";
+my $cmd_cms="";
+
+if($newInf){
+	$cmd_cms = "$infernal_path/cmsearch  $OPTS_cmsearch --tblout $tmp_tab_file ";
+	##die "hastat mtnuma newInfi mej.... $cmd_cms \n\n";
+}
+else{
+	$cmd_cms = "$infernal_path/cmsearch $OPTS_cmsearch --tabfile $tmp_tab_file ";
+}
 $cmd_cms .= "--toponly " if ($cm_top_only);
 my $min_bitscore = min(10,$cm_min_bitscore);
-$cmd_cms .= "-T $min_bitscore " if ($cm_bitscore_sig == 1);
+$cmd_cms .= " -T $min_bitscore " if ($cm_bitscore_sig == 1);
 $cmd_cms .= " $tgtdir/$target_file.cm $db ";
 
 system("rm -f $tmp_tab_file");
 system("rm -f $tgtdir/$target_file.cm.tabresult");
 
 ## run cmsearch
-system( $cmd_cms );
+system($cmd_cms);
 
 ## postprocessing
 system("mv $tmp_tab_file $tgtdir/$target_file.cm.tabresult ");

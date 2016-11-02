@@ -22,12 +22,14 @@ my $in_SGE_TASK_ID;    ## used for results stage
 my $in_eval_mode;
 my $in_verbose = 0;
 my $in_root_dir;
+my $newInf=0;
 
 GetOptions(
   "task-id=i"  => \$in_SGE_TASK_ID,
   "evaluate"   => \$in_eval_mode,
   "verbose"    => \$in_verbose,
   "root-dir=s" => \$in_root_dir,
+  "infernal_1_1" => \$newInf,
 );
 
 my $bin_dir = abs_path($FindBin::Bin);
@@ -38,7 +40,9 @@ my $bin_dir = abs_path($FindBin::Bin);
 SUBSECTION("options loaded for alignCenter.pl");
 printConfig( \%CONFIG ) if ($in_verbose);
 
-my $infernal_path = $CONFIG{PATH_INFERNAL};
+my $infernal_path;
+$infernal_path = $CONFIG{PATH_INFERNAL_1_0};
+$infernal_path = $CONFIG{PATH_INFERNAL_1_1} if ($newInf);
 my $rnaz_path     = $CONFIG{PATH_RNAZ};
 my $vrna_path     = $CONFIG{PATH_VRNA};
 my $tmp_path      = $CONFIG{PATH_TMP};
@@ -55,7 +59,14 @@ if ( !-e "$in_root_dir/FASTA/data.greylist" && uc( $CONFIG{results_partition_typ
   $part_file = "$in_root_dir/RESULTS/partitions/final_partition.hard.merged";
 }
 
-system("perl $bin_dir/glob_results.pl --root $in_root_dir --all") if ( !-e $part_file );
+
+
+  my $forInf = "";
+  $forInf = " --infernal_1_1 " if($newInf);
+  system("perl $bin_dir/glob_results.pl --root $in_root_dir --all $forInf") if ( !-e $part_file );
+
+
+#system("perl $bin_dir/glob_results.pl --root $in_root_dir --all $newInf") if ( !-e $part_file );
 
 print $CONFIG{results_partition_type} . ": use partition: $part_file\n";
 

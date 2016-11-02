@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 use warnings;
 use strict;
 
@@ -19,6 +19,7 @@ my $rootDir;
 my $verbose;
 my $merge_cluster_ol;
 my $merge_overlap;
+my $newInf = 0;
 
 my $do_summary_only = 0;    ## do only f-measure summary based on last round
 ## write new soft partition (e.g. used for blacklist)
@@ -34,6 +35,7 @@ usage()
   "summary-only" => \$do_summary_only,
   "all"          => \$redo_all,
   "last-ci=i"    => \$round_last,
+  "infernal_1_1" => \$newInf,
   );
 
 my $bin_dir = abs_path($FindBin::Bin);
@@ -70,7 +72,8 @@ print "min_cluster_size: $min_cluster_size\n";
 print "bitscore cutoff : $cm_min_bitscore\n";
 print "bitscore sig    : $cm_bitscore_sig\n";
 print "evalue cutoff   : $cm_max_eval\n";
-
+print "infernal version : 1_1\n" if($newInf);
+print "new inf value  = $newInf \n";
 ################################################################################
 
 my %cm_hitlists = ();
@@ -113,7 +116,12 @@ foreach my $file ( glob( "$rootDir" . "/CLUSTER/*.cluster/CMSEARCH/*.tabresult" 
   ## $key (eg. 1.10) becomes ->{NAME} of each hit
   my $cm_hits;
   if ( !exists $exist_part_used{$key} ) {
-    $cm_hits = GraphClust::read_CM_tabfile_ext( $file, $cm_min_bitscore, $cm_max_eval, $cm_bitscore_sig, $key );
+    if($newInf){
+	 $cm_hits = GraphClust::read_CM_tabfile_ext_1_1( $file, $cm_min_bitscore, $cm_max_eval, $cm_bitscore_sig, $key );
+    }
+    else{
+	 $cm_hits = GraphClust::read_CM_tabfile_ext_1_0( $file, $cm_min_bitscore, $cm_max_eval, $cm_bitscore_sig, $key );
+     }
     $exist_part_used{$key} = 1;
   } else {
     my @exist_hits = grep { $_->[4] eq $key } @{$exist_part};
@@ -806,10 +814,10 @@ sub write_res_summary {
     print $OUT_SUM "\n";
 
     if ($evaluate_class0_as_fp || ($res[4] != "0" && !$evaluate_class0_as_fp) ){
-      $f_sum += $res[8];  
+      $f_sum += $res[8];
       $clus_count++;
     }
-     
+
 
     ## do summary line for all results and for each interation
 
@@ -836,7 +844,7 @@ sub write_res_summary {
       my $fstep_str = " BETTER_FM";
       my $tf = 0;
       my @classes;
-      
+
       foreach my $fstep (@f_steps) {
 
         @classes = ();
@@ -846,18 +854,18 @@ sub write_res_summary {
           push( @classes, $c->[4] ) if ( $c->[8] >= $fstep );
         }
         $fstep_str .= "  $fstep  " . @classes . " (" . unique(@classes) . ")";
-        
+
         $tf = 0;
         map{ $tf += $cl2fm{$_} }unique(@classes);
       }
-      
+
       $fstep_str .= " FM_AVG_BETTER_05 ".sprintf( "%.3f", $tf / unique(@classes) );
-      
+
       $str .= "$fstep_str";
       push( @sum_round, $str );
-      
+
     }    ## if new round
-    
+
   }    ## foreach fmeasure
 
   print $OUT_SUM "\nSUMMARY\n\n";
