@@ -1,4 +1,4 @@
-##!/usr/bin/perl
+#!/usr/bin/perl
 #use feature ':5.10';
 use File::Basename;
 use lib dirname($0);    # search skript directory for modules
