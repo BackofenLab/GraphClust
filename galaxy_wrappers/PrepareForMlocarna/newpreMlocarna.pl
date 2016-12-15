@@ -677,7 +677,7 @@ sub matrix2tree {
     system("pwd");
 
     system(
-"perl $myPath/rnaclustScores2Dist.pl --quantile 1.0 < $tree_dir/tree.score-list > $tree_dir/tree.dist-list"
+"rnaclustScores2Dist.pl --quantile 1.0 < $tree_dir/tree.score-list > $tree_dir/tree.dist-list"
       ) == 0
       or die " .1. command was unable to run to completion:\n\n";
 

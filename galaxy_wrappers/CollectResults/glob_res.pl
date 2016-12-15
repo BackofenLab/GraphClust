@@ -226,7 +226,7 @@ sub collect_results {
     # }
 
 
-    system("perl $path/gc_res.pl $part_type @modTreeFiles");
+    system("gc_res.pl $part_type @modTreeFiles");
 
     my $stats_file = "RESULTS/cluster.final.stats";
     system("rm -f $stats_file");

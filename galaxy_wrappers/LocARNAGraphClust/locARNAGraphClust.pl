@@ -60,7 +60,7 @@ if ( !$use_prob_alig ) {
     $fold_opts .= "--rnaplfold-opts " . $rnaplfold_opts;
 
     #print "fold opts = $fold_opts\n";
-    system("perl $path/foldFasta.pl $fold_opts");
+    system("foldFasta.pl $fold_opts");
 }
 
 computeTreeAligsLocP(
@@ -858,7 +858,7 @@ sub NodeScore {
     my $mpi = 1;
 
     my @getmpi =
-      readpipe("perl $path/scoreAln.pl -i $node->{FILE} -f CLUSTALW -s mpi");
+      readpipe("scoreAln.pl -i $node->{FILE} -f CLUSTALW -s mpi");
     if (@getmpi) {
         $mpi = $getmpi[0];
         chomp($mpi) if ($mpi);
