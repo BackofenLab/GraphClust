@@ -719,8 +719,8 @@ sub alignTopResults {
     system("cp $resDir/locarna.$name/results/result.aln.ps $clusNum[1].cluster.$name.aln.ps");
     system("cp $resDir/locarna.$name/results/result.aln.alirna.ps $clusNum[1].cluster.$name.alirna.ps");
 
-    system("convert $clusNum[1].cluster.$name.aln.ps $clusNum[1].cluster.$name.aln.png");
-    system("convert $clusNum[1].cluster.$name.alirna.ps $clusNum[1].cluster.$name.alirna.png");
+    system("gm convert $clusNum[1].cluster.$name.aln.ps $clusNum[1].cluster.$name.aln.png");
+    system("gm convert $clusNum[1].cluster.$name.alirna.ps $clusNum[1].cluster.$name.alirna.png");
 
     system("mloc2stockholm.pl --split_input yes --con_struct $resDir/locarna.$name/results/result.aln.alifold -file $resDir/locarna.$name/results/result.aln");
     system("cmbuild -F $resDir/locarna.$name/results/result.aln.cm $resDir/locarna.$name/results/result.aln.sth");
