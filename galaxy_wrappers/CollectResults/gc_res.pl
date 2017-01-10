@@ -13,10 +13,9 @@ use List::Util qw/ min max /;
 my $in_eval_mode;
 my $in_verbose = 0;
 my $in_root_dir;
-my $results_top_num = 10;
 $in_root_dir = "";
 
-my ($part_type, @modTreeFiles) = @ARGV;
+my ($part_type, $results_top_num, @modTreeFiles ) = @ARGV;
 my $part_file;
 
 if($part_type == 0){
@@ -111,6 +110,7 @@ foreach my $res_idx (@res_todo) {
   close(OUT);
   makeCol("$clus_dir.cluster.all");
 
+  my $fa_top = alignTopResults( \%clus_hits, \@fa_scan, $results_top_num, $clus_dir, "top$results_top_num" );
 
   ############################################################################
   ## write fasta file for all hits in cluster
@@ -687,4 +687,98 @@ sub read_partition {
   close(IN);
 
   return \@part;
+}
+
+
+sub alignTopResults {
+  my $clusHits = $_[0];
+  my $faScan   = $_[1];
+  my $top_num  = $_[2];
+  my $resDir   = $_[3];
+  my $name     = $_[4];
+
+  my @clusNum = split('/', $resDir);
+  my $currPath =  getcwd ;
+  my @sorted_hits = grep { $clusHits->{$_}->{PART}->[1] > 0 } sort { $clusHits->{$b}->{PART}->[1] <=> $clusHits->{$a}->{PART}->[1] } keys %{$clusHits};
+
+  my $max = @sorted_hits;
+  $max = $top_num if ( $max > $top_num );
+  my @hitsTop = @sorted_hits[ 0 .. ( $max - 1 ) ];
+
+  ## write out fasta with selected seqs, check direction of cm hit (+1,-1)
+  my $fa_file_top = "$resDir" . ".cluster.$name.fa";
+
+  writeClusterFasta( \@hitsTop, $clusHits, $faScan, $fa_file_top );
+
+  my @hit_set = read_fasta_file($fa_file_top);
+  my $useLocP = 1;
+
+  if ( !-e "$resDir/locarna.$name/results/result.aln" && @{ $hit_set[1] } > 1 ) {
+    mlocarna_center( $fa_file_top, "$resDir/locarna.$name", "", $useLocP );
+    aln2alifold( "$resDir/locarna.$name/results/result.aln", $resDir, "" );
+    system("cp $resDir/locarna.$name/results/result.aln.ps $clusNum[1].cluster.$name.aln.ps");
+    system("cp $resDir/locarna.$name/results/result.aln.alirna.ps $clusNum[1].cluster.$name.alirna.ps");
+
+    system("convert $clusNum[1].cluster.$name.aln.ps $clusNum[1].cluster.$name.aln.png");
+    system("convert $clusNum[1].cluster.$name.alirna.ps $clusNum[1].cluster.$name.alirna.png");
+
+    system("mloc2stockholm.pl --split_input yes --con_struct $resDir/locarna.$name/results/result.aln.alifold -file $resDir/locarna.$name/results/result.aln");
+    system("cmbuild -F $resDir/locarna.$name/results/result.aln.cm $resDir/locarna.$name/results/result.aln.sth");
+    system("cp  $resDir/locarna.$name/results/result.aln.cm $resDir/cluster.$name.cm");
+  }
+
+  return $fa_file_top;
+}
+
+sub mlocarna_center {
+    my $fasta    = $_[0];
+    my $dir      = $_[1];
+    my $dpDir    = $_[2];
+    my $use_locP = $_[3];
+
+    my $loc_pp_dir = "$dir/input";
+    system("mkdir -p $loc_pp_dir");
+
+    my @fa = read_fasta_file($fasta);
+    foreach my $key ( keys %{ $fa[0] } ) {
+        system("ln -f -s $dpDir/$key $loc_pp_dir/$key")
+          if ( -e "$dpDir/$key" && !$use_locP );
+
+    }
+    my $OPTS_locarna_model = "-p 0.001 --max-diff-am 50 --tau 50  --max-diff 100 --alifold-consensus-dp --indel-open -400 --indel -200 --struct-weight 180";
+    system(
+"mlocarna $OPTS_locarna_model  --skip-pp --verbose --tgtdir $dir $fasta > $dir/locarna.out 2>&1"
+    );
+}
+
+
+sub aln2alifold {
+    my $aln_file  = $_[0];
+    my $tmp_path  = $_[1];
+    my $vrna_path = $_[2];
+
+    ## alifold result to get consensus structure string for infernal and some nice pictures
+    my $tmp_dir = "$tmp_path/alifold_$$";
+    my $currDir = getcwd;
+
+    system("mkdir -p $tmp_dir");
+
+    chdir($tmp_dir);
+
+    my @call_alifold = readpipe( "RNAalifold -r --noLP --color --aln $currDir/$aln_file 2>/dev/null" );
+    my $aln_cons_struct = $call_alifold[1];    ## store cons-struct
+    print "aln_cons_struct = $aln_cons_struct \n";
+    chomp($aln_cons_struct);
+    $aln_cons_struct =~ /([\(\).]*)(.*)/;      ## extract cons-struct
+    $aln_cons_struct = $1;
+    open( CONS, ">$currDir/$aln_file.alifold" );
+    print CONS $call_alifold[0];
+    print CONS "$aln_cons_struct\n";
+    print CONS $2;
+    close(CONS);
+  system("mv alirna.ps $currDir/$aln_file.alirna.ps");
+  system("mv aln.ps $currDir/$aln_file.ps");
+  chdir($currDir);
+
+  system("rm -R $tmp_dir");
 }

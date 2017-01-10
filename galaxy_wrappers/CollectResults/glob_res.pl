@@ -21,13 +21,14 @@ my $part_type        = $ARGV[7];
 my $path             = $ARGV[8];
 my $cutType          = $ARGV[9];
 my $model_tree_files = $ARGV[10];
+my $results_top_num = $ARGV[11];
 
 my $num_args = $#ARGV;
-if ( $num_args > 10 ) {
+if ( $num_args > 11 ) {
 
-    $CI                   = $ARGV[11];
-    $final_partition_soft = $ARGV[12];
-    $part_cmsearch        = $ARGV[13];
+    $CI                   = $ARGV[12];
+    $final_partition_soft = $ARGV[13];
+    $part_cmsearch        = $ARGV[14];
 
 }
 
@@ -225,8 +226,7 @@ sub collect_results {
     #     map { system("rm -r -f RESULTS/$_ ") if ( $_ =~ /\d+/ ) } @res_dir;
     # }
 
-
-    system("gc_res.pl $part_type @modTreeFiles");
+    system("gc_res.pl $part_type $results_top_num @modTreeFiles ");
 
     my $stats_file = "RESULTS/cluster.final.stats";
     system("rm -f $stats_file");
