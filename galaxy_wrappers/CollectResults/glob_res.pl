@@ -6,10 +6,23 @@ use Cwd qw(abs_path getcwd);
 use Array::Utils qw(:all);
 use POSIX qw(ceil floor);
 use List::Util qw/ min max /;
+use feature qw(switch);
+
 
 my $CI                   = 1;
 my $final_partition_soft = "";
 my $part_cmsearch        = "";
+
+my $p                    = "";
+my $max_diff_am          = "";
+my $max_diff             = "";
+my $tau                  = "";
+my $struct_weight        = "";
+my $indel_opening        = "";
+my $indel                = "";
+my $alifold_consensus_dp = "";
+my $OPTS_locarna_model   = "";
+
 my $tabularFiles     = $ARGV[0];
 my $merge_cluster_ol = $ARGV[1];
 my $merge_overlap    = $ARGV[2];
@@ -24,13 +37,47 @@ my $model_tree_files = $ARGV[10];
 my $results_top_num = $ARGV[11];
 
 my $num_args = $#ARGV;
-if ( $num_args > 11 ) {
 
-    $CI                   = $ARGV[12];
-    $final_partition_soft = $ARGV[13];
-    $part_cmsearch        = $ARGV[14];
+given($num_args) {
+		when(14)		{
+      $CI                   = $ARGV[12];
+      $final_partition_soft = $ARGV[13];
+      $part_cmsearch        = $ARGV[14];
 
+    }
+		when(19)	{
+
+      $p                    = $ARGV[12];
+      $max_diff_am          = $ARGV[13];
+      $max_diff             = $ARGV[14];
+      $tau                  = $ARGV[15];
+      $struct_weight        = $ARGV[16];
+      $indel_opening        = $ARGV[17];
+      $indel                = $ARGV[18];
+      $alifold_consensus_dp = $ARGV[19];
+      $OPTS_locarna_model = "-p $p --max-diff-am $max_diff_am --tau $tau  --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight";
+
+    }
+		when(22)	{
+      $CI                   = $ARGV[12];
+      $final_partition_soft = $ARGV[13];
+      $part_cmsearch        = $ARGV[14];
+      $p                    = $ARGV[15];
+      $max_diff_am          = $ARGV[16];
+      $max_diff             = $ARGV[17];
+      $tau                  = $ARGV[18];
+      $struct_weight        = $ARGV[19];
+      $indel_opening        = $ARGV[20];
+      $indel                = $ARGV[21];
+      $alifold_consensus_dp = $ARGV[22];
+      $OPTS_locarna_model = "-p $p --max-diff-am $max_diff_am --tau $tau  --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight";
+
+  }
+  default {print "";}
 }
+
+
+
 
 my $exist_part;
 my %exist_part_used = ();
@@ -226,7 +273,7 @@ sub collect_results {
     #     map { system("rm -r -f RESULTS/$_ ") if ( $_ =~ /\d+/ ) } @res_dir;
     # }
 
-    system("gc_res.pl $part_type $results_top_num @modTreeFiles ");
+    system("gc_res.pl $part_type $results_top_num \"$OPTS_locarna_model\" @modTreeFiles ");
 
     my $stats_file = "RESULTS/cluster.final.stats";
     system("rm -f $stats_file");
