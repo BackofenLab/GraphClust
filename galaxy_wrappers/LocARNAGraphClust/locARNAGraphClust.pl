@@ -9,20 +9,42 @@ our @EXPORT_OK = qw(
 
 our $node_sym = "\$\$nodesym";
 
-my (
-    $center_fa_file, $tree_file, $tree_matrix, $p,
-    $max_diff_am,    $tau,       $max_diff,    $path,
-    $data_map,       $plfold_minlen
-) = @ARGV;
+my $OPTS_locarna_paligs  = "";
+my $OPTS_locarna_maligs  = "";
+my $OPTS_locarna_p_model = "";
+my $OPTS_locarna_model = "";
+my $plfold_minlen  = 210;
+my $center_fa_file = $ARGV[0];
+my $tree_file      = $ARGV[1];
+my $tree_matrix    = $ARGV[2];
+my $data_map       = $ARGV[3];
 
-my $OPTS_locarna_paligs =
-" -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --indel-open -400 --indel -200 --struct-weight 180 ";
-my $OPTS_locarna_maligs =
-" -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --alifold-consensus-dp ";
-my $OPTS_locarna_p_model =
-" -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --struct-weight 180 --plfold-span 150 --plfold-winsize 200 --temperature 180 --mea-beta 400 --consistency-transformation ";
-my $OPTS_locarna_model =
-" -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --alifold-consensus-dp --indel-open -400 --indel -200 --struct-weight 180 ";
+my $num_args = $#ARGV;
+if ( $num_args > 3 ) {
+
+  my $p                    = $ARGV[4];
+  my $max_diff_am          = $ARGV[5];
+  my $max_diff             = $ARGV[6];
+  my $tau                  = $ARGV[7];
+  $plfold_minlen           = $ARGV[8];
+  my $struct_weight        = $ARGV[9];
+  my $indel_opening        = $ARGV[10];
+  my $indel                = $ARGV[11];
+  my $alifold_consensus_dp = $ARGV[12];
+  my $plfold_span          = $ARGV[13];
+  my $plfold_winsize       = $ARGV[14];
+
+  $OPTS_locarna_paligs =
+  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --indel-open $indel_opening --indel $indel --struct-weight $struct_weight ";
+  $OPTS_locarna_maligs =
+  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff $alifold_consensus_dp ";
+  $OPTS_locarna_p_model =
+  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --struct-weight $struct_weight --plfold-span $plfold_span --plfold-winsize $plfold_winsize --temperature 180 "; # --mea-beta 400 --consistency-transformation ";
+  $OPTS_locarna_model =
+  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight ";
+
+}
+
 my $center_subtree_min   = 3;
 my $center_subtree_max   = 7;
 my $center_tree_type     = 3;
@@ -764,7 +786,7 @@ sub read_clustalw_alnloh {
 
 sub makeCol {
     my $col_file = $_[0];
-    
+
     ## read content and spit into columns
     open( my $in_file, $col_file );
     my @cont    = ();
