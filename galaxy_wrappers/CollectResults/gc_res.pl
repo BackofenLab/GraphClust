@@ -87,7 +87,7 @@ foreach my $res_idx (@res_todo) {
   foreach my $key ( sort { $clus_hits{$b}->{PART}->[1] <=> $clus_hits{$a}->{PART}->[1] } grep { $clus_hits{$_}->{TYPE} eq "MODEL" } keys %clus_hits ) {
     my $score = $clus_hits{$key}->{PART}->[1];
     my $clus  = $clus_hits{$key}->{PART}->[4];
-    print OUT "CLUSTER  $clus_idx  CM_SCORE $score MODEL $clus ";
+    print OUT $key . " RESULT  $clus_idx  CM_SCORE $score MODEL $clus ";
     print OUT $fa_scan[2]->{ $clus_hits{$key}->{FRAG}->{SEQID} } . "\n";
     #my  $str = $fa_scan[2]->{ $clus_hits{$key}->{FRAG}->{SEQID} };
     #my @orId = split / /, $str;
@@ -100,7 +100,7 @@ foreach my $res_idx (@res_todo) {
   foreach my $key ( sort { $clus_hits{$b}->{PART}->[1] <=> $clus_hits{$a}->{PART}->[1] } grep { $clus_hits{$_}->{TYPE} ne "MODEL" } keys %clus_hits ) {
     my $score = $clus_hits{$key}->{PART}->[1];
     my $clus  = $clus_hits{$key}->{PART}->[4];
-    print OUT "CLUSTER $clus_idx   CM_SCORE $score " . $clus_hits{$key}->{TYPE} . " $clus ";
+    print OUT $key . " RESULT $clus_idx   CM_SCORE $score " . $clus_hits{$key}->{TYPE} . " $clus ";
     print OUT $fa_scan[2]->{ $clus_hits{$key}->{FRAG}->{SEQID} } . "\n";
     #my  $str = $fa_scan[2]->{ $clus_hits{$key}->{FRAG}->{SEQID}};
     #my @orId = split / /, $str;
