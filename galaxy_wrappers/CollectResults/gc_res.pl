@@ -26,7 +26,6 @@ else{
   $part_file = "RESULTS/partitions/final_partition.soft";
 
 }
-
 ## summary contains evaluation info for used partition
 my $summary;
 
@@ -725,6 +724,8 @@ sub alignTopResults {
 
     system("mloc2stockholm.pl --split_input yes --con_struct $resDir/locarna.$name/results/result.aln.alifold -file $resDir/locarna.$name/results/result.aln");
     system("cmbuild -F $resDir/locarna.$name/results/result.aln.cm $resDir/locarna.$name/results/result.aln.sth");
+    system("R-scape --outdir $resDir/locarna.$name/results/ $resDir/locarna.$name/results/result.aln.sth");
+    system("cp $resDir/locarna.$name/results/result.aln_1.R2R.sto.pdf  $clusNum[1].cluster.$name.result.aln_1.R2R.sto.pdf");
     system("cp  $resDir/locarna.$name/results/result.aln.cm $resDir/cluster.$name.cm");
   }
 
