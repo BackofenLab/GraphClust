@@ -18,21 +18,22 @@ my $center_fa_file = $ARGV[0];
 my $tree_file      = $ARGV[1];
 my $tree_matrix    = $ARGV[2];
 my $data_map       = $ARGV[3];
+my $skip_overlap  = $ARGV[4];
 
 my $num_args = $#ARGV;
-if ( $num_args > 3 ) {
+if ( $num_args > 4 ) {
 
-  my $p                    = $ARGV[4];
-  my $max_diff_am          = $ARGV[5];
-  my $max_diff             = $ARGV[6];
-  my $tau                  = $ARGV[7];
-  $plfold_minlen           = $ARGV[8];
-  my $struct_weight        = $ARGV[9];
-  my $indel_opening        = $ARGV[10];
-  my $indel                = $ARGV[11];
-  my $alifold_consensus_dp = $ARGV[12];
-  my $plfold_span          = $ARGV[13];
-  my $plfold_winsize       = $ARGV[14];
+  my $p                    = $ARGV[5];
+  my $max_diff_am          = $ARGV[6];
+  my $max_diff             = $ARGV[7];
+  my $tau                  = $ARGV[8];
+  $plfold_minlen           = $ARGV[9];
+  my $struct_weight        = $ARGV[10];
+  my $indel_opening        = $ARGV[11];
+  my $indel                = $ARGV[12];
+  my $alifold_consensus_dp = $ARGV[13];
+  my $plfold_span          = $ARGV[14];
+  my $plfold_winsize       = $ARGV[15];
 
   $OPTS_locarna_paligs =
   " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --indel-open $indel_opening --indel $indel --struct-weight $struct_weight ";
@@ -114,7 +115,7 @@ foreach
     print BEST getNodeInfo( $t, $cluster_id, $rank ) . "\n";
 
     ## no model if subtree contains overlapping sequences (frags)
-    next if ( $t->{OVERLAP} );
+    next if ( $t->{OVERLAP} and $skip_overlap );
 
     ## skip unstructured subtrees
     next if ( $t->{MFE} >= 0 && $center_skip_unstable );
@@ -123,6 +124,7 @@ foreach
 
     ## otherwise potential model alignment
     push( @subtrees_final, $t );
+
 }
 
 close(BEST);
