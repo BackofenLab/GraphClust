@@ -14,35 +14,41 @@ my $OPTS_locarna_maligs  = "";
 my $OPTS_locarna_p_model = "";
 my $OPTS_locarna_model = "";
 my $plfold_minlen  = 210;
+
 my $center_fa_file = $ARGV[0];
 my $tree_file      = $ARGV[1];
 my $tree_matrix    = $ARGV[2];
 my $data_map       = $ARGV[3];
-my $skip_overlap  = $ARGV[4];
+my $skip_overlap   = $ARGV[4];
+my $free_endgaps   = $ARGV[5];
+
+if ($free_endgaps eq "0"){
+  $free_endgaps = "";
+}
 
 my $num_args = $#ARGV;
-if ( $num_args > 4 ) {
+if ( $num_args > 5 ) {
 
-  my $p                    = $ARGV[5];
-  my $max_diff_am          = $ARGV[6];
-  my $max_diff             = $ARGV[7];
-  my $tau                  = $ARGV[8];
-  $plfold_minlen           = $ARGV[9];
-  my $struct_weight        = $ARGV[10];
-  my $indel_opening        = $ARGV[11];
-  my $indel                = $ARGV[12];
-  my $alifold_consensus_dp = $ARGV[13];
-  my $plfold_span          = $ARGV[14];
-  my $plfold_winsize       = $ARGV[15];
+  my $p                    = $ARGV[6];
+  my $max_diff_am          = $ARGV[7];
+  my $max_diff             = $ARGV[8];
+  my $tau                  = $ARGV[9];
+  $plfold_minlen           = $ARGV[10];
+  my $struct_weight        = $ARGV[11];
+  my $indel_opening        = $ARGV[12];
+  my $indel                = $ARGV[13];
+  my $alifold_consensus_dp = $ARGV[14];
+  my $plfold_span          = $ARGV[15];
+  my $plfold_winsize       = $ARGV[16];
 
   $OPTS_locarna_paligs =
-  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --indel-open $indel_opening --indel $indel --struct-weight $struct_weight ";
+  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --indel-open $indel_opening --indel $indel --struct-weight $struct_weight $free_endgaps ";
   $OPTS_locarna_maligs =
-  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff $alifold_consensus_dp ";
+  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff $alifold_consensus_dp  $free_endgaps";
   $OPTS_locarna_p_model =
-  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --struct-weight $struct_weight --plfold-span $plfold_span --plfold-winsize $plfold_winsize --temperature 180 "; # --mea-beta 400 --consistency-transformation ";
+  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff --struct-weight $struct_weight --plfold-span $plfold_span --plfold-winsize $plfold_winsize --temperature 180 $free_endgaps"; # --mea-beta 400 --consistency-transformation ";
   $OPTS_locarna_model =
-  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight ";
+  " -p $p --max-diff-am $max_diff_am --tau $tau --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight $free_endgaps ";
 
 }
 
