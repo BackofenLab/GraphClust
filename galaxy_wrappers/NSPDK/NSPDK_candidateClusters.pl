@@ -8,8 +8,6 @@ use Array::Utils qw(:all);
 my $SVECTOR_DIR = "SVECTOR";
 my $DATA_prefix = "data";
 
-### dnvdfbvk djvnkjnkv
-
 my $final_partition_soft = "";
 my $bl_list              = "";
 my $CI                   = 1;
@@ -37,6 +35,7 @@ if ( $CI eq "" ) {
     $CI = 1;
 }
 
+system("cat $SVECTOR_DIR/* > $SVECTOR_DIR/data.svector");
 my $data_svector        = "$SVECTOR_DIR/data.svector";
 my $nspdk_mi_max        = int( $nspdk_knn_center / 2 );
 my $nspdk_mi_step       = max( 1, int( $nspdk_mi_max / 5 ) );
@@ -44,6 +43,12 @@ my $nspdk_mi            = 0;
 my @fa                  = read_fasta_file($data_fasta);
 my $num_seqs            = @{ $fa[1] };
 my $clusters_last_round = [];
+
+
+
+
+
+
 
 if ( $CI > 1 ) {
 
