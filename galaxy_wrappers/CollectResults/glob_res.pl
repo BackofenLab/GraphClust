@@ -12,6 +12,7 @@ use feature qw(switch);
 my $CI                   = 1;
 my $final_partition_soft = "";
 my $part_cmsearch        = "";
+my $combined_cm          = "combined_cmsearch_output";
 
 my $p                    = "";
 my $max_diff_am          = "";
@@ -39,10 +40,11 @@ my $results_top_num = $ARGV[11];
 my $num_args = $#ARGV;
 
 given($num_args) {
-		when(14)		{
+		when(15)		{
       $CI                   = $ARGV[12];
       $final_partition_soft = $ARGV[13];
       $part_cmsearch        = $ARGV[14];
+      $combined_cm          = $ARGV[15];
 
     }
 		when(19)	{
@@ -58,18 +60,19 @@ given($num_args) {
       $OPTS_locarna_model = "-p $p --max-diff-am $max_diff_am --tau $tau  --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight";
 
     }
-		when(22)	{
+		when(23)	{
       $CI                   = $ARGV[12];
       $final_partition_soft = $ARGV[13];
       $part_cmsearch        = $ARGV[14];
-      $p                    = $ARGV[15];
-      $max_diff_am          = $ARGV[16];
-      $max_diff             = $ARGV[17];
-      $tau                  = $ARGV[18];
-      $struct_weight        = $ARGV[19];
-      $indel_opening        = $ARGV[20];
-      $indel                = $ARGV[21];
-      $alifold_consensus_dp = $ARGV[22];
+      $combined_cm          = $ARGV[15];
+      $p                    = $ARGV[16];
+      $max_diff_am          = $ARGV[17];
+      $max_diff             = $ARGV[18];
+      $tau                  = $ARGV[19];
+      $struct_weight        = $ARGV[20];
+      $indel_opening        = $ARGV[21];
+      $indel                = $ARGV[22];
+      $alifold_consensus_dp = $ARGV[23];
       $OPTS_locarna_model = "-p $p --max-diff-am $max_diff_am --tau $tau  --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight";
 
   }
@@ -101,8 +104,29 @@ my $index = 1;
 
 foreach my $file (sort(@tabFiles)) {
 
+  system("echo '##new_file'  >> $combined_cm");
+  system("cat $file  >> $combined_cm");
+	system("ln $combined_cm ./combined_cmsearch_output ");
+}
+
+if ($CI ge 2){
+
+  system("csplit -b %i -s -z -f part_ $combined_cm '/^##new_file/' {*}");
+  my $numoffiles = readpipe("ls -1q part* | wc -l");
+
+  print "num of files =  $numoffiles \n";
+  for (my $i=0; $i < $numoffiles; $i++) {
+
+  push @tabFiles, "part_$i" ;
+
+  }
+}
+
+
+foreach my $file (sort(@tabFiles)) {
+
     my $round   = $CI;
-    my @indexes = split( '\.', $file );
+  #  my @indexes = split( '\.', $file );
     my $key     = "$round.$index";
     next if ( $round_last && $round > $round_last );
 
@@ -140,7 +164,7 @@ foreach my $file (sort(@tabFiles)) {
     $index = $index + 1;
 }    ###end foreach file
 
-
+##########################################################################################################
 my $ts = $merge_cluster_ol * 100;
 
 system("mkdir -p EVAL/partitions");

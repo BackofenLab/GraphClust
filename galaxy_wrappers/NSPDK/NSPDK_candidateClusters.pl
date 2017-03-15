@@ -35,7 +35,8 @@ if ( $CI eq "" ) {
     $CI = 1;
 }
 
-system("cat $SVECTOR_DIR/* > $SVECTOR_DIR/data.svector");
+system("cd $SVECTOR_DIR && ls *.group.gspan | sort -n -t '.' -k 1 | xargs cat > data.svector ");
+
 my $data_svector        = "$SVECTOR_DIR/data.svector";
 my $nspdk_mi_max        = int( $nspdk_knn_center / 2 );
 my $nspdk_mi_step       = max( 1, int( $nspdk_mi_max / 5 ) );
