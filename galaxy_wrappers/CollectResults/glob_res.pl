@@ -12,7 +12,7 @@ use feature qw(switch);
 my $CI                   = 1;
 my $final_partition_soft = "";
 my $part_cmsearch        = "";
-my $combined_cm          = "combined.cm";
+my $combined_cm          = "combined_cmsearch_output";
 
 my $p                    = "";
 my $max_diff_am          = "";
@@ -106,7 +106,7 @@ foreach my $file (sort(@tabFiles)) {
 
   system("echo '##new_file'  >> $combined_cm");
   system("cat $file  >> $combined_cm");
-	system("ln $combined_cm ./combined.cm ");
+	system("ln $combined_cm ./combined_cmsearch_output ");
 }
 
 if ($CI ge 2){
