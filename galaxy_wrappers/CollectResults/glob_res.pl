@@ -12,7 +12,7 @@ use feature qw(switch);
 my $CI                   = 1;
 my $final_partition_soft = "";
 my $part_cmsearch        = "";
-my $combined_cm          = "combined_cmsearch_output";
+my $combined_cm          = "combined_cm_out";
 
 my $p                    = "";
 my $max_diff_am          = "";
@@ -45,6 +45,7 @@ given($num_args) {
       $final_partition_soft = $ARGV[11];
       $part_cmsearch        = $ARGV[12];
       $combined_cm          = $ARGV[13];
+			system("cp $combined_cm combined_cm_out");
 
     }
 		when(17)	{
@@ -74,7 +75,7 @@ given($num_args) {
       $indel                = $ARGV[20];
       $alifold_consensus_dp = $ARGV[21];
       $OPTS_locarna_model = "-p $p --max-diff-am $max_diff_am --tau $tau  --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight";
-
+			system("cp $combined_cm combined_cm_out");
   }
   default {print "";}
 }
@@ -101,7 +102,7 @@ if ( $final_partition_soft ne "" && $part_cmsearch ne "" ) {
     map { $exist_part_used{ $_->[0] } = 1 } @{$used_cm};
 }
 
-system("cp $combined_cm combined_cm_out");
+
 $combined_cm = "combined_cm_out";
 
 foreach my $file (sort(@tabFiles)) {
