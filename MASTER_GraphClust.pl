@@ -246,11 +246,11 @@ if ( $NUM_THREADS > 1 ) {
     push @workers, async {
       while ( defined( my $call = $q->dequeue() ) ) {
         my $ret = call_thread($call);
-        
+
         if ($ret != 0){
-          print "Error during thread call:\n$call\n";  
+          print "Error during thread call:\n$call\n";
         }
-        
+
       }
     };
   }
@@ -605,9 +605,9 @@ foreach my $CI ( 1 .. $GLOBAL_iterations ) {
 # ~/workspace64/GraphClust/scripts/EDeN --action CLUSTER --binary_file_type --file_type SPARSE_VECTOR --cluster_type DENSE_CENTERS -R 1 --eccess_neighbour_size_factor 5 --num_nearest_neighbours 15 --sample_size 5 --num_hash_functions 300 --max_intersection_size 0 --fraction_center_scan 0.5 --max_size_bin 0.5 --shared_neighborhood --num_repeat_hash_functions 2 --force_approximate  -i 1.group.gspan.feature
 
 # K quick shift clustering
-#~/workspace64/GraphClust/scripts/EDeN --action CLUSTER --binary_file_type --file_type SPARSE_VECTOR --cluster_type K_QUICK_SHIFT -R 1 --eccess_neighbour_size_factor 5 --num_nearest_neighbours 15 --num_hash_functions 300 --max_size_bin 0.5 --shared_neighborhood --num_repeat_hash_functions 2 --force_approximate --cluster_threshold 1  -i 1.group.gspan.feature  
-  
-# learning  
+#~/workspace64/GraphClust/scripts/EDeN --action CLUSTER --binary_file_type --file_type SPARSE_VECTOR --cluster_type K_QUICK_SHIFT -R 1 --eccess_neighbour_size_factor 5 --num_nearest_neighbours 15 --num_hash_functions 300 --max_size_bin 0.5 --shared_neighborhood --num_repeat_hash_functions 2 --force_approximate --cluster_threshold 1  -i 1.group.gspan.feature
+
+# learning
 #~/workspace64/GraphClust/scripts/EDeN --action TRAIN --binary_file_type --file_type SPARSE_VECTOR -t target.test -m model.name -i 1.group.gspan.feature
 # ~/workspace64/GraphClust/scripts/EDeN --action FEATURE_SCALED --binary_file_type --file_type SPARSE_VECTOR  -m model.name -i 1.group.gspan.feature
 
@@ -1262,7 +1262,7 @@ sub job_check {
     #@jobs_fin = <$sge_log_dir/*.finished>;
     @jobs_fin = ();
     map{push(@jobs_fin,1) if (system("stat $sge_log_dir/task-$_.finished 1>/dev/null 2>/dev/null") == 0)} 1..$sge_jobs;
-    
+
     @jobs_err = <$sge_log_dir/*.error>;
 
     if ( $wait && !defined($fin_last) || ($wait && @jobs_fin > $fin_last) ) {
@@ -1557,7 +1557,7 @@ sub job_submit {
         system("$CALL_script $CURRDIR $SGE_LOGDIR $t $call_str 1>$SGE_ERRDIR/$JOB_UUID.out.$t 2>$SGE_ERRDIR/$JOB_UUID.err.$t") == 0
           or $err = 1;
         print "TASK $t/$SGE_JOBS finished err=$err\n";
-        if ($err){ 
+        if ($err){
           print "\n";
           system("cat $SGE_ERRDIR/$JOB_UUID.err.$t");
           print "\n";

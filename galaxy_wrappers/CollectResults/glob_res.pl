@@ -24,55 +24,55 @@ my $indel                = "";
 my $alifold_consensus_dp = "";
 my $OPTS_locarna_model   = "";
 
-my $tabularFiles     = $ARGV[0];
-my $merge_cluster_ol = $ARGV[1];
-my $merge_overlap    = $ARGV[2];
-my $min_cluster_size = $ARGV[3];
-my $cm_min_bitscore  = $ARGV[4];
-my $cm_max_eval      = $ARGV[5];
-my $cm_bitscore_sig  = $ARGV[6];
-my $part_type        = $ARGV[7];
-my $path             = $ARGV[8];
-my $cutType          = $ARGV[9];
-my $model_tree_files = $ARGV[10];
-my $results_top_num = $ARGV[11];
+#my $tabularFiles     = $ARGV[0];
+my $merge_cluster_ol = $ARGV[0];
+my $merge_overlap    = $ARGV[1];
+my $min_cluster_size = $ARGV[2];
+my $cm_min_bitscore  = $ARGV[3];
+my $cm_max_eval      = $ARGV[4];
+my $cm_bitscore_sig  = $ARGV[5];
+my $part_type        = $ARGV[6];
+my $path             = $ARGV[7];
+my $cutType          = $ARGV[8];
+#my $model_tree_files = $ARGV[9];
+my $results_top_num = $ARGV[9];
 
 my $num_args = $#ARGV;
 
 given($num_args) {
-		when(15)		{
-      $CI                   = $ARGV[12];
-      $final_partition_soft = $ARGV[13];
-      $part_cmsearch        = $ARGV[14];
-      $combined_cm          = $ARGV[15];
+		when(13)		{
+      $CI                   = $ARGV[10];
+      $final_partition_soft = $ARGV[11];
+      $part_cmsearch        = $ARGV[12];
+      $combined_cm          = $ARGV[13];
 
     }
-		when(19)	{
+		when(17)	{
 
-      $p                    = $ARGV[12];
-      $max_diff_am          = $ARGV[13];
-      $max_diff             = $ARGV[14];
-      $tau                  = $ARGV[15];
-      $struct_weight        = $ARGV[16];
-      $indel_opening        = $ARGV[17];
-      $indel                = $ARGV[18];
-      $alifold_consensus_dp = $ARGV[19];
+      $p                    = $ARGV[10];
+      $max_diff_am          = $ARGV[11];
+      $max_diff             = $ARGV[12];
+      $tau                  = $ARGV[13];
+      $struct_weight        = $ARGV[14];
+      $indel_opening        = $ARGV[15];
+      $indel                = $ARGV[16];
+      $alifold_consensus_dp = $ARGV[17];
       $OPTS_locarna_model = "-p $p --max-diff-am $max_diff_am --tau $tau  --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight";
 
     }
-		when(23)	{
-      $CI                   = $ARGV[12];
-      $final_partition_soft = $ARGV[13];
-      $part_cmsearch        = $ARGV[14];
-      $combined_cm          = $ARGV[15];
-      $p                    = $ARGV[16];
-      $max_diff_am          = $ARGV[17];
-      $max_diff             = $ARGV[18];
-      $tau                  = $ARGV[19];
-      $struct_weight        = $ARGV[20];
-      $indel_opening        = $ARGV[21];
-      $indel                = $ARGV[22];
-      $alifold_consensus_dp = $ARGV[23];
+		when(21)	{
+      $CI                   = $ARGV[10];
+      $final_partition_soft = $ARGV[11];
+      $part_cmsearch        = $ARGV[12];
+      $combined_cm          = $ARGV[13];
+      $p                    = $ARGV[14];
+      $max_diff_am          = $ARGV[15];
+      $max_diff             = $ARGV[16];
+      $tau                  = $ARGV[17];
+      $struct_weight        = $ARGV[18];
+      $indel_opening        = $ARGV[19];
+      $indel                = $ARGV[20];
+      $alifold_consensus_dp = $ARGV[21];
       $OPTS_locarna_model = "-p $p --max-diff-am $max_diff_am --tau $tau  --max-diff $max_diff $alifold_consensus_dp --indel-open $indel_opening --indel $indel --struct-weight $struct_weight";
 
   }
@@ -85,14 +85,15 @@ given($num_args) {
 my $exist_part;
 my %exist_part_used = ();
 my %cm_hitlists     = ();
-my $round_last;
+my $round_last = $CI;
 my $round_max = 0;
 
 my ( $class_Frags, $class_Size, $class_Names );
 my $evaluate_min_overlap  = $merge_overlap;
 my $evaluate_class0_as_fp = $cm_bitscore_sig;
-my @tabFiles = split( ',', $tabularFiles );
-my @modTreeFiles = split( ',', $model_tree_files );
+
+my @tabFiles = glob "CMSEARCH/*";
+my @modTreeFiles = glob "MODEL/*";
 
 if ( $final_partition_soft ne "" && $part_cmsearch ne "" ) {
     $exist_part = read_partition($final_partition_soft);
@@ -100,37 +101,69 @@ if ( $final_partition_soft ne "" && $part_cmsearch ne "" ) {
     map { $exist_part_used{ $_->[0] } = 1 } @{$used_cm};
 }
 
-my $index = 1;
 
 foreach my $file (sort(@tabFiles)) {
 
-  system("echo '##new_file'  >> $combined_cm");
+	$file =~ /(\d+)\.(\d+)\.(tree)/;
+	my $round = $1;
+	my $index = $2;
+
+  system("echo '##.$round.$index'  >> $combined_cm");
   system("cat $file  >> $combined_cm");
-	system("ln $combined_cm ./combined_cmsearch_output ");
+	system("cp $combined_cm FASTA/combined_cmsearch_output ");
 }
+#########################################################################################
+undef @tabFiles;
 
-if ($CI ge 2){
+open(my $fh, '<:encoding(UTF-8)', $combined_cm)
+  or die "Could not open file '$combined_cm' $!";
 
-  system("csplit -b %i -s -z -f part_ $combined_cm '/^##new_file/' {*}");
-  my $numoffiles = readpipe("ls -1q part* | wc -l");
+my $split_dir = "split_dir";
+system("mkdir $split_dir");
 
-  print "num of files =  $numoffiles \n";
-  for (my $i=0; $i < $numoffiles; $i++) {
 
-  push @tabFiles, "part_$i" ;
+my $sep = 0;
+my $occurance = 0;
+my $name;
+while (my $row = <$fh>) {
+  chomp $row;
+  if ($row =~ /(##.)(\d+\.)(\d+)/){
+    $name = $2.$3;
+    $sep = 1;
+    $occurance = $occurance + 1;
+  }
+  if ($sep eq 1){
+    $sep = 0;
+    next;
+  }
+  elsif($sep eq 0 and $occurance ge 1){
+      open( OUT, ">>$split_dir/$name" );
+      print OUT $row;
+      print OUT "\n";
+      $sep = 0;
+  }
+  else{
+    $occurance = 0;
+    close(OUT);
 
   }
 }
 
+@tabFiles = split("\n", `ls $split_dir/* | sort -n -t '.' -k 1 `);
+my $total = scalar(@tabFiles);
+
+#########################################################################################
 
 foreach my $file (sort(@tabFiles)) {
 
-    my $round   = $CI;
-  #  my @indexes = split( '\.', $file );
-    my $key     = "$round.$index";
-    next if ( $round_last && $round > $round_last );
+	$file =~ /(\d+)\.(\d+)/;
+	my $round = $1;
+	my $index = $2;
 
-    $round_max = $round if ( $round > $round_max );
+  my $key     = "$round.$index";
+  next if ( $round_last && $round > $round_last );
+
+  $round_max = $round if ( $round > $round_max );
 
     ## reuse already filtered tabresults from cmsearch, exactly what is in soft partition
     ## $key (eg. 1.10) becomes ->{NAME} of each hit
@@ -144,7 +177,6 @@ foreach my $file (sort(@tabFiles)) {
     else {
         my @exist_hits = grep { $_->[4] eq $key } @{$exist_part};
         $cm_hits = part2frags( \@exist_hits );
-
     }
 
     ## file is created when running, but empty
@@ -161,7 +193,7 @@ foreach my $file (sort(@tabFiles)) {
 
     ## add cm_hits to $cm_hitlists{$key}->{HITS}
     $cm_hitlists{$key}->{HITS} = $cm_hits;
-    $index = $index + 1;
+
 }    ###end foreach file
 
 ##########################################################################################################
