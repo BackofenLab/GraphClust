@@ -101,6 +101,8 @@ if ( $final_partition_soft ne "" && $part_cmsearch ne "" ) {
     map { $exist_part_used{ $_->[0] } = 1 } @{$used_cm};
 }
 
+system("cp $combined_cm combined_cm_out");
+$combined_cm = "combined_cm_out";
 
 foreach my $file (sort(@tabFiles)) {
 
@@ -110,7 +112,6 @@ foreach my $file (sort(@tabFiles)) {
 
   system("echo '##.$round.$index'  >> $combined_cm");
   system("cat $file  >> $combined_cm");
-	system("cp $combined_cm FASTA/combined_cmsearch_output ");
 }
 #########################################################################################
 undef @tabFiles;
@@ -121,7 +122,6 @@ open(my $fh, '<:encoding(UTF-8)', $combined_cm)
 my $split_dir = "split_dir";
 system("mkdir $split_dir");
 
-
 my $sep = 0;
 my $occurance = 0;
 my $name;
@@ -130,23 +130,18 @@ while (my $row = <$fh>) {
   if ($row =~ /(##.)(\d+\.)(\d+)/){
     $name = $2.$3;
     $sep = 1;
-    $occurance = $occurance + 1;
   }
   if ($sep eq 1){
     $sep = 0;
     next;
   }
-  elsif($sep eq 0 and $occurance ge 1){
-      open( OUT, ">>$split_dir/$name" );
+  elsif($sep eq 0){
+      open( OUT, ">>$split_dir/$name.tab" );
       print OUT $row;
       print OUT "\n";
+      close(OUT);
       $sep = 0;
-  }
-  else{
-    $occurance = 0;
-    close(OUT);
-
-  }
+	}
 }
 
 @tabFiles = split("\n", `ls $split_dir/* | sort -n -t '.' -k 1 `);
@@ -156,7 +151,7 @@ my $total = scalar(@tabFiles);
 
 foreach my $file (sort(@tabFiles)) {
 
-	$file =~ /(\d+)\.(\d+)/;
+	$file =~ /(\d+)\.(\d+)\.(tab)/;
 	my $round = $1;
 	my $index = $2;
 
