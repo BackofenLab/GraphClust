@@ -11,7 +11,7 @@ GraphClust can be used for structural clustering of RNA sequences. Especially it
 Feel free to contribute to this project by wirting [Issues](https://github.com/BackofenLab/GraphClust/issues) with feature requests or bug reports.
 
 ## Cite
-If you use CPSP-tools, please cite our [article](http://bioinformatics.oxfordjournals.org/content/28/12/i224):
+If you use GraphClust, please cite our [article](http://bioinformatics.oxfordjournals.org/content/28/12/i224):
 ```
 doi: 10.1093/bioinformatics/bts224
 ```
