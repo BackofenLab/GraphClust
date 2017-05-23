@@ -8,7 +8,7 @@ GraphClust can be used for structural clustering of RNA sequences. Especially it
 
 ## Contribution
 
-Feel free to contribute to this project by wirting [Issues](https://github.com/BackofenLab/GraphClust/issues) with feature requests or bug reports.
+Feel free to contribute to this project by raising [Issues](https://github.com/BackofenLab/GraphClust/issues) with feature requests or bug reports.
 
 ## Cite
 If you use GraphClust, please cite our [article](http://bioinformatics.oxfordjournals.org/content/28/12/i224):
