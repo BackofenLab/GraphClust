@@ -30,7 +30,9 @@ Options:
         		The sequence and structure data, the output of structure prediction tool.
 
        	OPTIONS
-       	-input-format Sequence Structure format of the input. Allowed format: "rnafold"
+       	-input-format Sequence Structure format of the input. Allowed formats: "vrna-simple", "vrna-mea"
+        -input-structure-type Sequence Structure type from the input to use. Allowed types: "MFE", "MEA"
+        
         -stack		Adds stacking information to graphs. This adds an additional
         		vertex (type P) for each pair of stacked base-pairs and four edges
         		(type p) from each of the involved bases to the new vertex.
@@ -96,7 +98,7 @@ my (
     $i_stacks,             $i_stdout,     
     $i_sge_logDir,         $i_sge_errDir, $i_groupsize,
     $i_annotate,           $i_abstr,      $i_no_structure,
-    $i_vp, $i_input_format             
+    $i_vp, $i_input_format, $i_structure_type
 );
 
 my ( $i_add_seq_graph_win, $i_add_seq_graph_t, $i_change_seq_graph_alph );
@@ -107,6 +109,7 @@ my $options = GetOptions(
     "debug"          => \$i_debug,
     "input-file=s"        => \$i_input_file,
     "input-format=s" => \$i_input_format, 
+    "input-structure-type=s" => \$i_structure_type, 
     "stack"          => \$i_stacks,
     "tmp=s"          => \$i_tmp,
     "o=s"            => \$i_o,
@@ -130,7 +133,7 @@ pod2usage( -exitstatus => 0, -verbose => 2 ) if $i_man;
 ($options) or pod2usage(2);
 
 # check compulsory options
-($i_input_file) or pod2usage("Error: the option -rnafold-fasta is compulsory!\n");
+($i_input_file) or pod2usage("Error: the option -vrna-fasta is compulsory!\n");
 ( -e $i_input_file ) or pod2usage("Error: no such file - $i_input_file!\n");
 $i_input_file = abs_path($i_input_file);
 
@@ -138,8 +141,10 @@ $i_input_file = abs_path($i_input_file);
 ($i_add_seq_graph_t)       or $i_add_seq_graph_t       = 0;
 ($i_change_seq_graph_alph) or $i_change_seq_graph_alph = 0;
 ($i_no_structure)          or $i_no_structure          = 0;
-($i_input_format)          or $i_input_format          = 'rnafold';
-($i_input_format eq 'rnafold') or pod2usage("Error: not allowed input format: $i_input_format!\n"); 
+($i_input_format)          or $i_input_format          = 'vrna-simple';
+($i_structure_type)        or $i_structure_type        = 'MFE';
+($i_input_format eq 'vrna-simple') or ($i_input_format eq 'vrna-mea') or pod2usage("Error: not allowed input format: $i_input_format!\n"); 
+($i_structure_type eq 'MFE') or ( $i_structure_type eq 'MEA' && $i_input_format eq 'vrna-mea') or pod2usage("Error: used type: $i_structure_type\n    MEA type is only allowed in combination with vrna-mea format!\n"); 
 
 if ($i_change_seq_graph_alph){
     ($i_add_seq_graph_t)
@@ -167,7 +172,7 @@ my $CURRDIR = getcwd;
 my $tmp_template = 'fasta2shrep-XXXXXX';
 
 # CLEANUP => 1 : automatically delete at exit
-$i_tmp = tempdir( $tmp_template, DIR => $i_tmp, CLEANUP => 1 );
+$i_tmp = tempdir( $tmp_template, DIR => $i_tmp, CLEANUP => 0 );
 
 # create GSPAN directory when not printing to stdout
 if ( not $i_stdout ) {
@@ -202,8 +207,12 @@ my $ABSTRUCT = "AS";
 ###############################################################################
 
 # read fasta file into hash
-my ( $headers_aref, $sequences_aref, $metainfo_aref ) =
-  read_rnafold_fasta_with_nonunique_headers($i_input_file);
+my ( $headers_aref, $sequences_aref, $metainfo_aref, $metainfo_aref_mea ) =
+  read_vrna_fasta_with_nonunique_headers($i_input_file, $i_input_format);
+
+if ($i_structure_type eq 'MEA') {
+    $metainfo_aref = $metainfo_aref_mea;
+} 
 
 my @used_seq_headers;
 my @used_seqs;
@@ -336,7 +345,7 @@ while ( my $seq = shift @used_seqs ) {
         move "$gspanfile.bz2", "$i_o/$GSPANNO.gspan.bz2";
     }
 
-    system("rm $seq_fasta");
+    system("rm $seq_fasta") if (!$i_debug);;
 
 }    ## while @used_seqs
 
@@ -542,16 +551,18 @@ sub convertStructure {
 #	(2) An array reference for each sequence in same order as the headers
 ##################################################################################
 
-sub read_rnafold_fasta_with_nonunique_headers {
-    my ($file) = @_;
+sub read_vrna_fasta_with_nonunique_headers {
+    my ($file, $format) = @_;
     my $FUNCTION = "read_fasta_file in Sequences.pm";
 
     my $header    = "";
     my $seqstring = "";
     my @headers   = ();
     my @sequences = ();
-    my @structs      = ();
-    my $seq_meta  = "";
+    my @structs_mfe      = ();
+    my @structs_mea      = ();
+    my $seq_meta_mfe  = "";
+    my $seq_meta_mea  = "";
     open( IN_HANDLE, "<$file" )
       || die "ERROR in $FUNCTION:\n"
       . "Couldn't open the following file in package Tool,"
@@ -566,17 +577,25 @@ sub read_rnafold_fasta_with_nonunique_headers {
                 $seqstring =~ s/\s*//g;    ## do not allow spaces in sequence
                 push( @headers,   $header );
                 push( @sequences, $seqstring );
-                push( @structs, $seq_meta );    ## anonymous hash reference
+                push( @structs_mfe, $seq_meta_mfe );    ## anonymous hash reference
+                push( @structs_mea, $seq_meta_mea );
                                                      #print keys %seq_meta;
                 $seqstring = "";
-                $seq_meta = "";
+                $seq_meta_mfe = "";
+                $seq_meta_mea = "";
             }
             $header = $1;
 
         }
         elsif ( $line =~ /([.\)\(]+)\s+(\S+)$/ && $header ) {
+            my $cur_struct = $1;
+            if ($format eq 'vrna-simple') {
+                $seq_meta_mfe .= $cur_struct;    
+            }
+            elsif ($format eq 'vrna-mea' && $2 =~ 'MEA') {
 
-            $seq_meta .= $1;
+                $seq_meta_mea .= $cur_struct;
+            }
 
         }
         elsif ($header) {
@@ -588,11 +607,14 @@ sub read_rnafold_fasta_with_nonunique_headers {
         $seqstring =~ s/\s*//g;    ## do not allow spaces in sequence
         push( @headers,   $header );
         push( @sequences, $seqstring );
-        push( @structs,    $seq_meta );
+        push( @structs_mfe,    $seq_meta_mfe );
+        push( @structs_mea,    $seq_meta_mea );
+
         $seqstring = "";
-        $seq_meta  = "";
+        $seq_meta_mfe  = "";
+        $seq_meta_mea  = "";
     }
-    return ( \@headers, \@sequences, \@structs );
+    return ( \@headers, \@sequences, \@structs_mfe, \@structs_mea );
 }
 ##################################################################################
 # This method parses a fasta file and is useful if the header ID is not-unique!!
