@@ -21,7 +21,7 @@ system("mkdir -p $CLUSTER_DIR");
 my @fa = read_fasta_file($data_fasta);
 
 ## get real number of dense centers/clusters found by nspdk ($CONFIG{GLOBAL_num_clusters} could be higher)
-my $num_clusters_curr = readpipe("wc -l $fast_cluster");
+my $num_clusters_curr = readpipe("awk 'NF' $fast_cluster | wc -l");
 $num_clusters_curr =~ /(\d+)\s.*$/;
 $num_clusters_curr = $1;
 

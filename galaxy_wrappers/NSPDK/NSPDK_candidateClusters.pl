@@ -11,6 +11,8 @@ my $DATA_prefix = "data";
 my $final_partition_soft = "";
 my $bl_list              = "";
 my $CI                   = 1;
+my $fast_cluster_last_round = "";
+my $GLOBAL_hit_blacklist_overlap = "";
 my $data_fasta           = $ARGV[0];
 my $data_names           = $ARGV[1];
 my $noCache              = $ARGV[2];
@@ -25,12 +27,14 @@ my $GLOBAL_num_clusters  = $ARGV[10];
 my $rad                  = $ARGV[11];
 my $dist                 = $ARGV[12];
 
-$CI                   = $ARGV[13];
-$bl_list              = $ARGV[14];
-$final_partition_soft = $ARGV[15];
-my $fast_cluster_last_round      = $ARGV[16];
-my $GLOBAL_hit_blacklist_overlap = $ARGV[17];
-
+my $num_args = $#ARGV;
+if ( $num_args > 13 ) {
+    $CI                   = $ARGV[13];
+    $bl_list              = $ARGV[14];
+    $final_partition_soft = $ARGV[15];
+    $fast_cluster_last_round      = $ARGV[16];
+    $GLOBAL_hit_blacklist_overlap = $ARGV[17];
+}
 if ( $CI eq "" ) {
     $CI = 1;
 }
