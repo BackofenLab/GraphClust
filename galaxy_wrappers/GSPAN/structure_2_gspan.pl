@@ -172,7 +172,7 @@ my $CURRDIR = getcwd;
 my $tmp_template = 'fasta2shrep-XXXXXX';
 
 # CLEANUP => 1 : automatically delete at exit
-$i_tmp = tempdir( $tmp_template, DIR => $i_tmp, CLEANUP => 0 );
+$i_tmp = tempdir( $tmp_template, DIR => $i_tmp, CLEANUP => 1 );
 
 # create GSPAN directory when not printing to stdout
 if ( not $i_stdout ) {
@@ -563,6 +563,8 @@ sub read_vrna_fasta_with_nonunique_headers {
     my @structs_mea      = ();
     my $seq_meta_mfe  = "";
     my $seq_meta_mea  = "";
+    my $seq_read = 0;
+    my $mfe_read = 0;
     open( IN_HANDLE, "<$file" )
       || die "ERROR in $FUNCTION:\n"
       . "Couldn't open the following file in package Tool,"
@@ -585,21 +587,28 @@ sub read_vrna_fasta_with_nonunique_headers {
                 $seq_meta_mea = "";
             }
             $header = $1;
+            $seq_read = 0;
+            $mfe_read = 0;
 
         }
-        elsif ( $line =~ /([.\)\(]+)\s+(\S+)$/ && $header ) {
+        elsif ( $line =~ /^([.\)\(]+)\s+(\S+)/ && $header ) {
             my $cur_struct = $1;
-            if ($format eq 'vrna-simple') {
+            if ($mfe_read==0) {
+                #print "mfe is: $cur_struct\n";
                 $seq_meta_mfe .= $cur_struct;    
+                $mfe_read = 1;
             }
-            elsif ($format eq 'vrna-mea' && $2 =~ 'MEA') {
+            elsif ($format eq 'vrna-mea' && (index($line,'MEA') != -1) ) {
+                #print "line is:$line\nMEA is: $cur_struct\n";
 
                 $seq_meta_mea .= $cur_struct;
             }
 
         }
-        elsif ($header) {
+        elsif ($header && $seq_read == 0) {
             $seqstring .= $line;
+            #print "SEQ is: $seqstring\n";
+            $seq_read = 1;
         }
     }
 
