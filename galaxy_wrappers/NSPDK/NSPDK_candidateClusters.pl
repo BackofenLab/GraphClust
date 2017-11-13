@@ -8,11 +8,11 @@ use Array::Utils qw(:all);
 my $SVECTOR_DIR = "SVECTOR";
 my $DATA_prefix = "data";
 
-my $final_partition_soft = "";
-my $bl_list              = "";
+my $final_partition_soft = undef;
+my $bl_list              = undef;
 my $CI                   = 1;
-my $fast_cluster_last_round = "";
-my $GLOBAL_hit_blacklist_overlap = "";
+my $fast_cluster_last_round = undef;
+my $GLOBAL_hit_blacklist_overlap = undef;
 my $data_fasta           = $ARGV[0];
 my $data_names           = $ARGV[1];
 my $noCache              = $ARGV[2];
@@ -28,6 +28,7 @@ my $rad                  = $ARGV[11];
 my $dist                 = $ARGV[12];
 
 my $num_args = $#ARGV;
+print "num_args: $num_args\n";
 if ( $num_args > 13 ) {
     $CI                   = $ARGV[13];
     $bl_list              = $ARGV[14];
