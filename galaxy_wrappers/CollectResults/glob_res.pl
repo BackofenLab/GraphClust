@@ -107,7 +107,7 @@ $combined_cm = "combined_cm_out";
 
 foreach my $file (sort(@tabFiles)) {
 
-	$file =~ /(\d+)\.(\d+)\.(tree)/;
+	$file =~ /(\d+)\.(\d+)\./;
 	my $round = $1;
 	my $index = $2;
 
