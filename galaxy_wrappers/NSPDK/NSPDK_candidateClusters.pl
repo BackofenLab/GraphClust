@@ -40,7 +40,7 @@ if ( $CI eq "" ) {
     $CI = 1;
 }
 
-system("cd $SVECTOR_DIR && ls *.group.gspan | sort -n -t '.' -k 1 | xargs cat > data.svector ");
+system("cd $SVECTOR_DIR && ls [0-9]**.gspan | sort -n -t '.' -k 1 | xargs cat > data.svector ");
 
 my $data_svector        = "$SVECTOR_DIR/data.svector";
 my $nspdk_mi_max        = int( $nspdk_knn_center / 2 );
