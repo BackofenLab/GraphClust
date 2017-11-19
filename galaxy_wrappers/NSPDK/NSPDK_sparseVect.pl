@@ -8,6 +8,14 @@ my $SVECTOR_DIR = "SVECTOR";
 my ( $data_fasta, $gspan, $rad, $dist ) = @ARGV;
 my $group_gspan = "group.gspan";
 
+if ($ARGV[0] eq "-help") {
+    print "Usage: NSPDK_candidateClusters.pl -R -D  \n";
+    print "
+    -R max radius (default: 1)
+    -D max distance relations (default: 4)\n";
+    exit 0;
+}
+
 system("bzcat $gspan > $group_gspan");
 
 my @fa       = read_fasta_file($data_fasta);

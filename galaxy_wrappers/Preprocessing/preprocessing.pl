@@ -8,6 +8,13 @@ use Cwd qw(abs_path getcwd);
 use List::Util 'shuffle';
 use List::Util qw/ min max /;
 
+if ($ARGV[0] eq "-help") {
+    print "Usage: \n";
+    print "\tpreprocessing.pl preprocessing.pl fastaFile max_length in_winShift min_seq_length
+            ";
+    exit 0;
+}
+
 my $tgtdir        = 'FASTA';
 my $in_fasta      = $ARGV[0];
 my @fa_in         = read_fasta_file( $in_fasta, 1 );

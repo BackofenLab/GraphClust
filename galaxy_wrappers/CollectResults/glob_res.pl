@@ -8,7 +8,21 @@ use POSIX qw(ceil floor);
 use List::Util qw/ min max /;
 use feature qw(switch);
 
-
+if ($ARGV[0] eq "-help") {
+    print "Usage: 
+    glob_res.pl
+    merge_cluster_ol
+    merge_overlap
+    min_cluster_size
+    cm_min_bitscore
+    cm_max_eval
+    cm_bitscore_sig
+    partition_type 
+    cut_type
+    results_top_num
+    ";
+    exit 0;
+}
 my $CI                   = 1;
 my $final_partition_soft = "";
 my $part_cmsearch        = "";
