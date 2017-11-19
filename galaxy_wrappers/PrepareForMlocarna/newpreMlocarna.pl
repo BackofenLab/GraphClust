@@ -3,6 +3,13 @@ use strict;
 use warnings;
 use List::Util qw/ min max /;
 
+if ($ARGV[0] eq "-help") {
+    print "Usage: \n";
+    print " newpreMlocarna.pl CI fast_cluster fasta_data fast_cluster_sim data_map knn
+    ";
+    exit 0;
+}
+
 my ( $CI, $fast_cluster, $data_fasta, $fast_cluster_sim, $map_data,
     $nspdk_knn_center, $myPath )
   = @ARGV;

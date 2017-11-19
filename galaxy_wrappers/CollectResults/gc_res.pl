@@ -10,6 +10,10 @@ use Data::Dumper;
 use Array::Utils qw(:all);
 use List::Util qw/ min max /;
 
+if ($ARGV[0] eq "-help") {
+    print "Usage: gc_res.pl\n";
+    exit 0;
+}
 my $in_eval_mode;
 my $in_verbose = 0;
 my $in_root_dir;

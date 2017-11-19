@@ -5,6 +5,25 @@ use List::Util qw/ min max /;
 use POSIX qw(ceil floor);
 use Array::Utils qw(:all);
 
+if ($ARGV[0] eq "-help") {
+    print "Usage: \n";
+    print "\tNSPDK_candidateClusters.pl\
+            'data_fasta'\
+            'data_names'\
+            noCache\
+            ensf\
+            oc\
+            usn\
+            knn\
+            nhf\
+            nspdk_nhf_max\
+            nspdk_nhf_step\
+            GLOBAL_num_clusters\
+            max_rad\
+            max_dist_relations
+            ";
+    exit 0;
+}
 my $SVECTOR_DIR = "SVECTOR";
 my $DATA_prefix = "data";
 

@@ -7,6 +7,12 @@ our @EXPORT_OK = qw(
   $node_sym
 );
 
+if ($ARGV[0] eq "-help") {
+    print "Usage: \n";
+    print "locARNAGraphClust.pl center_fa_file tree_file tree_matrix data_map allow_overlap free_endgaps\n";
+    exit 0;
+}
+
 our $node_sym = "\$\$nodesym";
 
 my $OPTS_locarna_paligs  = "";
