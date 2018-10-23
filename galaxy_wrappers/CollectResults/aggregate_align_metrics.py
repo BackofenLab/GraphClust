@@ -89,7 +89,7 @@ def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_
             multibed.append('\t'.join(bed9))
         new_multibeds.append('\n'.join(multibed))
         
-    #df['cluster_bed9'] = new_multibeds
+    df['cluster_bed9'] = new_multibeds
         
 def df_to_ucsc_track(df,min_rscape_bp, min_rnaz_prob, track_name='coords',skip_header=False,skip_rest=True, cluster_prefix='',cluster_suffix=''):
     add_itemRGB_to_bed(df,min_rnaz_prob,skip_rest,cluster_prefix=cluster_prefix,cluster_suffix=cluster_suffix)
@@ -139,8 +139,6 @@ print("Info: {} tsv files obtained".format(len(tsv_files)))
 dfs_tsvs = [pd.read_csv(f,sep='\t') for f in tsv_files]
 
 df_tsvs = pd.concat(dfs_tsvs, sort=False)
-print(df_tsvs.info())
-print(df_tsvs['cluster_human_loc'])
 
 print('Info: {} rows of cluster info retrived'.format(len(df_tsvs)))
  
@@ -155,7 +153,7 @@ if args.filtered_tsv_out:
     df_filtered.to_csv(args.filtered_tsv_out,sep='\t')
 
 if args.bed_out:
-    df_filtered_with_human_loc = df_filtered[~ (df_filtered['cluster_human_loc'].isnull())]
+    df_filtered_with_human_loc = df_filtered[~ (df_filtered['cluster_human_loc'].isnull())].copy()
     bed_str = df_to_ucsc_track(df_filtered_with_human_loc, args.rscape_bp_threshold,args.RNAz_prob_threshold,'GENE')
     with open(args.bed_out,'w') as outb:
         outb.write(bed_str)
