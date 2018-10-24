@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import pandas as pd
 def filter_df_rnaz(df_rnaz, min_SCI,min_prob, min_num_seqs, max_multihit=0):
     return df_rnaz[(df_rnaz['multihit per_species']<=max_multihit)&(df_rnaz['num_seqs']>=min_num_seqs) & 
@@ -7,8 +8,8 @@ def filter_df_rnaz(df_rnaz, min_SCI,min_prob, min_num_seqs, max_multihit=0):
                    ((df_rnaz['Prediction']=='RNA') | 
                    ((df_rnaz['Structure conservation index']>=min_SCI) & (df_rnaz['SVM RNA-class probability']>=min_prob))              | 
         (df_rnaz['Structure conservation index']*100>=df_rnaz['Mean pairwise identity']))]
-def clean_columns(df):
-    return df[[#'cluster',
+def clean_columns(df, extra_columns=False):
+    full_selection_list = ['cluster',
                'rscape_TP','score','Prediction','Structure conservation index',
                'SVM RNA-class probability','SVM decision value','multihit per_species',
                #'Mean z-score',
@@ -20,10 +21,24 @@ def clean_columns(df):
                'cluster_human_loc',#'cluster_human_ids',
                'num_human_seqs_all', 'num_seqs_all',
                'cluster_bed',
-               'alignment','fold'
+               'alignment','fold',
+               'cluster_bed',
+               'cluster_human_loc',
                #'rscape_out',
                
-              ] ]
+              ]
+    selection_list = ['cluster', 'num_seqs','Mean pairwise identity',
+    'Structure conservation index',
+    'SVM RNA-class probability',
+    'rscape_TP','score','cluster_bed','cluster_human_loc',
+    ]
+
+    if extra_columns:
+        selection_list = full_selection_list
+
+    selection_list = [s for s in selection_list if s in df.columns]
+    return df[selection_list]
+
 # clean_columns(filter_df_rnaz(dfs_dictdup['HOTAIR']))
 
 def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_name=True, cluster_prefix='',cluster_suffix=''):
@@ -44,7 +59,6 @@ def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_
     for ir, r in df.iterrows():
         itemRGB = '255,255,255'
         
-    
         if r['score']>1:
             if r['rscape_TP']>=min_rscape_bp and r['SVM RNA-class probability']>=min_rnaz_prob:
                 itemRGB = color_red
@@ -74,11 +88,12 @@ def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_
             if(len(bed6)<3):
                 #print("Warning: skip entry, missing bed6",bed6)
                 continue
+            bed6[3]+='-' + r['cluster']
             bed9 = bed6 + [bed6[1], bed6[2], itemRGB]
             bed9[4] = str(int(r['SVM RNA-class probability']*100)) # Use Prob as bed score
             if simple_name is True:
                 bed9[3] = '-'.join(bed9[3].split('-')[1:]) # remove gene name section for shorter names
-                bed9[3] = bed9[3].replace('cluster-','C')
+                bed9[3] = bed9[3].replace('X-','C')
                 bed9[3] = bed9[3].replace('Xtend5UTR-','')
             if(len(r['cluster_human_loc'].split(','))>1):
                 bed9[3]+='-paralog'
@@ -92,7 +107,7 @@ def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_
     df['cluster_bed9'] = new_multibeds
         
 def df_to_ucsc_track(df,min_rscape_bp, min_rnaz_prob, track_name='coords',skip_header=False,skip_rest=True, cluster_prefix='',cluster_suffix=''):
-    add_itemRGB_to_bed(df,min_rnaz_prob,skip_rest,cluster_prefix=cluster_prefix,cluster_suffix=cluster_suffix)
+    add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob,skip_rest,cluster_prefix=cluster_prefix,cluster_suffix=cluster_suffix)
     bed_str = ""
     if not skip_header:
         bed_str +='track name={} description="{}" visibility=3 itemRgb=On'.format(track_name.replace(' ','-'), 'GraphClust-2.0 ' + track_name)+ "\n"
@@ -106,8 +121,10 @@ def df_to_ucsc_track(df,min_rscape_bp, min_rnaz_prob, track_name='coords',skip_h
 # clean_columns(
 def filter_by_min_seqnum(df, min_seq):
     return(df[df['num_seqs_all']>=min_seq])
+
 def filter_evo_bpcount(df,min_bp):
     return(df[df['fold'].str.count('\(')>=min_bp])
+
 def print_bed_simple(df):
     print('\n'.join([s for s in df.sort_values('SVM RNA-class probability', ascending=False)['cluster_bed'].values if len(s)>0])) # Skip empty beds due to skip_rest=True
     return df
@@ -116,15 +133,19 @@ import argparse
 import glob
 parser = argparse.ArgumentParser(description='Aggregate and filter alignment metrics of individual clusters, like the output of graphclust_align_cluster')
 parser.add_argument('--exclude-spurious-structs', action='store_true')
-parser.add_argument('--spurious-SCI', default=0.01)
+parser.add_argument('--spurious-SCI', type=float, default=0.01)
 
-parser.add_argument('--RNAz-prob-threshold', default=0.50)
-parser.add_argument('--rscape-bp-threshold', default=2)
+parser.add_argument('--RNAz-prob-threshold', type=float, default=0.50)
+parser.add_argument('--rscape-bp-threshold', type=int, default=2)
 
 parser.add_argument('--min-seq-num', type=int, required=True)
 parser.add_argument('--clusters-tsv-pattern', default="./*.tsv")
 parser.add_argument('--filtered-tsv-out', type=str, required=False)
 parser.add_argument('--bed-out', type=str, required=False)
+parser.add_argument('--all-columns', action='store_true')
+parser.add_argument('--exclude-paralog-clusters', action='store_true')
+
+
 
 
 args = parser.parse_args()
@@ -133,28 +154,31 @@ tsv_files = glob.glob(args.clusters_tsv_pattern)
 if len(tsv_files)==0:
     raise RuntimeError('No tsv file found')
 
-
 print("Info: {} tsv files obtained".format(len(tsv_files)))
-
 dfs_tsvs = [pd.read_csv(f,sep='\t') for f in tsv_files]
 
+for df, tsf in zip(dfs_tsvs,tsv_files):
+    df['cluster'] = os.path.basename(tsf.split('.')[0]) # assign uniq names of the files to the cluster column
 df_tsvs = pd.concat(dfs_tsvs, sort=False)
 
 print('Info: {} rows of cluster info retrived'.format(len(df_tsvs)))
  
-df_filtered = clean_columns(df_tsvs)
-df_filtered = filter_by_min_seqnum(df_filtered, args.min_seq_num)
+df_filtered = filter_by_min_seqnum(df_tsvs, args.min_seq_num)
 if args.exclude_spurious_structs is True:
     df_filtered = df_filtered[df_filtered['Structure conservation index']>args.spurious_SCI]
 
 print('Info: Clusters were reduced to {}'.format(len(df_filtered)))
 
 if args.filtered_tsv_out:
-    df_filtered.to_csv(args.filtered_tsv_out,sep='\t')
+    if args.all_columns is True:
+        df_filtered.to_csv(args.filtered_tsv_out,sep='\t',index=False)
+    else:
+        clean_columns(df_filtered).to_csv(args.filtered_tsv_out,sep='\t',index=False)
+print(df_filtered.info())
 
 if args.bed_out:
     df_filtered_with_human_loc = df_filtered[~ (df_filtered['cluster_human_loc'].isnull())].copy()
-    bed_str = df_to_ucsc_track(df_filtered_with_human_loc, args.rscape_bp_threshold,args.RNAz_prob_threshold,'GENE')
+    bed_str = df_to_ucsc_track(df_filtered_with_human_loc, args.rscape_bp_threshold,args.RNAz_prob_threshold,'')
     with open(args.bed_out,'w') as outb:
         outb.write(bed_str)
     print('BED was written to file')

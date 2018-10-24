@@ -188,7 +188,7 @@ def get_alignment_df(align_file,
     
     
     if out_tsv_file is not None:
-            df_rnaz_evofold_rscape.to_csv(out_tsv_file,sep='\t')
+            df_rnaz_evofold_rscape.to_csv(out_tsv_file,sep='\t',float_format='%.3f')
     
     #return df_rnaz_evofold_rscape
 
