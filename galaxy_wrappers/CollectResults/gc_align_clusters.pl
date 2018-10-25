@@ -19,14 +19,14 @@ my $in_verbose = 0;
 my $in_root_dir;
 $in_root_dir = "";
 
-my ($myFasta, $myResDir,$clusName, $OPTS_locarna_model) = @ARGV;
+my ($myFasta, $myResDir,$clusName, $results_top_num, $OPTS_locarna_model) = @ARGV;
 
 
 ## summary contains evaluation info for used partition
 
 my @fa_scan = read_fasta_file($myFasta);
 
-my $fa_top = alignTopResults( $myFasta,$myResDir,$clusName);
+my $fa_top = alignTopResults( $myFasta,$myResDir,$clusName,$results_top_num);
 
 
 exit;
@@ -122,33 +122,38 @@ sub read_fasta_file {
 
 
 sub alignTopResults {
-  my $fa_file   = $_[0];
+  my $fa_file  = $_[0];
   my $resDir   = $_[1];
   my $name     = $_[2];
-
+  my $top_num  = $_[3];
+  print("top_num $top_num\n");
   my $currPath =  getcwd ;
-  
+
+ 
+  ## input fasta is sorted, so we take the top number from the top of the input fasta 
+  my $fa_file_top = "$resDir" . ".cluster.$name.fa";
+  system("awk \"/^>/ {n++} n>$top_num {exit} {print}\" $fa_file > $fa_file_top" );
 
   my $useLocP = 1;
 
-    mlocarna_center( $fa_file, "$resDir/locarna.$name", "", $useLocP );
-    aln2alifold( "$resDir/locarna.$name/results/result.aln", $resDir, "" );
-    system("cp $resDir/locarna.$name/results/result.aln cluster.aln");
-    system("cp $resDir/locarna.$name/results/result.aln.ps cluster.aln.ps");
-    system("cp $resDir/locarna.$name/results/result.aln.alirna.ps cluster.alirna.ps");
+  mlocarna_center( $fa_file_top, "$resDir/locarna.$name", "", $useLocP );
+  aln2alifold( "$resDir/locarna.$name/results/result.aln", $resDir, "" );
+  system("cp $resDir/locarna.$name/results/result.aln cluster.aln");
+  system("cp $resDir/locarna.$name/results/result.aln.ps cluster.aln.ps");
+  system("cp $resDir/locarna.$name/results/result.aln.alirna.ps cluster.alirna.ps");
 
 
-    system("gm convert cluster.aln.ps cluster.aln.png");
-    system("gm convert cluster.alirna.ps cluster.alirna.png");
+  system("gm convert cluster.aln.ps cluster.aln.png");
+  system("gm convert cluster.alirna.ps cluster.alirna.png");
 
-    system("mloc2stockholm.pl --split_input yes --con_struct $resDir/locarna.$name/results/result.aln.alifold -file $resDir/locarna.$name/results/result.aln");
-    system("cmbuild -F $resDir/locarna.$name/results/result.aln.cm $resDir/locarna.$name/results/result.aln.sth");
-    system("cp $resDir/locarna.$name/results/result.aln.sth result.aln.sth");
-    # system("R-scape --outdir $resDir/locarna.$name/results/ $resDir/locarna.$name/results/result.aln.sth");
-    # system("cp $resDir/locarna.$name/results/result.aln_1.R2R.sto.pdf  cluster.result.aln_1.R2R.sto.pdf");
-    system("cp  $resDir/locarna.$name/results/result.aln.cm $resDir/cluster.$name.cm");
+  system("mloc2stockholm.pl --split_input yes --con_struct $resDir/locarna.$name/results/result.aln.alifold -file $resDir/locarna.$name/results/result.aln");
+  system("cmbuild -F $resDir/locarna.$name/results/result.aln.cm $resDir/locarna.$name/results/result.aln.sth");
+  system("cp $resDir/locarna.$name/results/result.aln.sth result.aln.sth");
+  # system("R-scape --outdir $resDir/locarna.$name/results/ $resDir/locarna.$name/results/result.aln.sth");
+  # system("cp $resDir/locarna.$name/results/result.aln_1.R2R.sto.pdf  cluster.result.aln_1.R2R.sto.pdf");
+  system("cp  $resDir/locarna.$name/results/result.aln.cm $resDir/cluster.$name.cm");
 
-  return $fa_file;
+  return $fa_file_top;
 }
 
 sub mlocarna_center {

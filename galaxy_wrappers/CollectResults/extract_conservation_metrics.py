@@ -35,13 +35,11 @@ def call_RNAz(aln_file, use_cache=True):
     return rnaz_dict
 
 def RNAz_out_to_df(aln_file, rnaz_file):
-    print ('RNAz_out_to_df:',aln_file, rnaz_file)
     rnaz_dict = dict()
     rnaz_dict['alignment'] = aln_file
 
     with open(rnaz_file) as rnazin:
         for line in rnazin:
-            print('line:',line)
             splits = line.split(":")
             if len(splits) > 1:
                 assert (len(splits)==2)
@@ -67,7 +65,6 @@ def get_Evofold_df(evoout_file):
         return dict()
         
     
-    print(df_evofold)
     if(df_evofold.empty):
         return {col:None for col in df_evofold.columns}
     return df_evofold.iloc[df_evofold['score'].idxmax()].to_dict() # If multiples, return one with max score, 1-row dataframe return

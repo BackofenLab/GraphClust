@@ -705,35 +705,48 @@ sub alignTopResults {
   my @sorted_hits = grep { $clusHits->{$_}->{PART}->[1] > 0 } sort { $clusHits->{$b}->{PART}->[1] <=> $clusHits->{$a}->{PART}->[1] } keys %{$clusHits};
 
   my $max = @sorted_hits;
-  $max = $top_num if ( $max > $top_num );
-  my @hitsTop = @sorted_hits[ 0 .. ( $max - 1 ) ];
+  
+  if ($top_num == 0) {
+    # first write all sequences sorted
+    ## write out fasta with selected seqs, check direction of cm hit (+1,-1)
+    my $fa_file_sorted = "$resDir" . ".cluster.sorted.fa";
+    my @hitsTop = @sorted_hits[ 0 .. ( $max - 1 ) ];
+  
+    writeClusterFasta( \@hitsTop, $clusHits, $faScan, $fa_file_sorted );
+    return $fa_file_sorted;
 
-  ## write out fasta with selected seqs, check direction of cm hit (+1,-1)
-  my $fa_file_top = "$resDir" . ".cluster.$name.fa";
-
-  writeClusterFasta( \@hitsTop, $clusHits, $faScan, $fa_file_top );
-
-  my @hit_set = read_fasta_file($fa_file_top);
-  my $useLocP = 1;
-
-  if ( !-e "$resDir/locarna.$name/results/result.aln" && @{ $hit_set[1] } > 1 ) {
-    mlocarna_center( $fa_file_top, "$resDir/locarna.$name", "", $useLocP );
-    aln2alifold( "$resDir/locarna.$name/results/result.aln", $resDir, "" );
-    system("cp $resDir/locarna.$name/results/result.aln.ps $clusNum[1].cluster.$name.aln.ps");
-    system("cp $resDir/locarna.$name/results/result.aln.alirna.ps $clusNum[1].cluster.$name.alirna.ps");
-
-
-    system("gm convert $clusNum[1].cluster.$name.aln.ps $clusNum[1].cluster.$name.aln.png");
-    system("gm convert $clusNum[1].cluster.$name.alirna.ps $clusNum[1].cluster.$name.alirna.png");
-
-    system("mloc2stockholm.pl --split_input yes --con_struct $resDir/locarna.$name/results/result.aln.alifold -file $resDir/locarna.$name/results/result.aln");
-    system("cmbuild -F $resDir/locarna.$name/results/result.aln.cm $resDir/locarna.$name/results/result.aln.sth");
-    system("R-scape --outdir $resDir/locarna.$name/results/ $resDir/locarna.$name/results/result.aln.sth");
-    system("cp $resDir/locarna.$name/results/result.aln_1.R2R.sto.pdf  $clusNum[1].cluster.$name.result.aln_1.R2R.sto.pdf");
-    system("cp  $resDir/locarna.$name/results/result.aln.cm $resDir/cluster.$name.cm");
   }
+  else {
+    # then select the top ones and continue as original script
+    $max = $top_num if ( $max > $top_num );
+    my @hitsTop = @sorted_hits[ 0 .. ( $max - 1 ) ];
 
-  return $fa_file_top;
+    ## write out fasta with selected seqs, check direction of cm hit (+1,-1)
+    my $fa_file_top = "$resDir" . ".cluster.$name.fa";
+
+    writeClusterFasta( \@hitsTop, $clusHits, $faScan, $fa_file_top );
+
+    my @hit_set = read_fasta_file($fa_file_top);
+    my $useLocP = 1;
+
+    if ( !-e "$resDir/locarna.$name/results/result.aln" && @{ $hit_set[1] } > 1 ) {
+      mlocarna_center( $fa_file_top, "$resDir/locarna.$name", "", $useLocP );
+      aln2alifold( "$resDir/locarna.$name/results/result.aln", $resDir, "" );
+      system("cp $resDir/locarna.$name/results/result.aln.ps $clusNum[1].cluster.$name.aln.ps");
+      system("cp $resDir/locarna.$name/results/result.aln.alirna.ps $clusNum[1].cluster.$name.alirna.ps");
+
+
+      system("gm convert $clusNum[1].cluster.$name.aln.ps $clusNum[1].cluster.$name.aln.png");
+      system("gm convert $clusNum[1].cluster.$name.alirna.ps $clusNum[1].cluster.$name.alirna.png");
+
+      system("mloc2stockholm.pl --split_input yes --con_struct $resDir/locarna.$name/results/result.aln.alifold -file $resDir/locarna.$name/results/result.aln");
+      system("cmbuild -F $resDir/locarna.$name/results/result.aln.cm $resDir/locarna.$name/results/result.aln.sth");
+      system("R-scape --outdir $resDir/locarna.$name/results/ $resDir/locarna.$name/results/result.aln.sth");
+      system("cp $resDir/locarna.$name/results/result.aln_1.R2R.sto.pdf  $clusNum[1].cluster.$name.result.aln_1.R2R.sto.pdf");
+      system("cp  $resDir/locarna.$name/results/result.aln.cm $resDir/cluster.$name.cm");
+    }
+    return $fa_file_top;
+  }
 }
 
 sub mlocarna_center {

@@ -22,15 +22,15 @@ def clean_columns(df, extra_columns=False):
                'num_human_seqs_all', 'num_seqs_all',
                'cluster_bed',
                'alignment','fold',
-               'cluster_bed',
                'cluster_human_loc',
+               'cluster_bed',
                #'rscape_out',
                
               ]
-    selection_list = ['cluster', 'num_seqs','Mean pairwise identity',
+    selection_list = ['cluster', 'num_seqs_all','Mean pairwise identity',
     'Structure conservation index',
     'SVM RNA-class probability',
-    'rscape_TP','score','cluster_bed','cluster_human_loc',
+    'rscape_TP','score','cluster_human_loc','cluster_bed',
     ]
 
     if extra_columns:
@@ -41,7 +41,7 @@ def clean_columns(df, extra_columns=False):
 
 # clean_columns(filter_df_rnaz(dfs_dictdup['HOTAIR']))
 
-def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_name=True, cluster_prefix='',cluster_suffix=''):
+def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_name=True, cluster_prefix='',cluster_suffix='',annotate_tools=True):
     color1 = '0,158,115'
     color1_darker = '0,118,95'
     color2 =  '0,114,178'
@@ -58,21 +58,28 @@ def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_
     new_multibeds = []
     for ir, r in df.iterrows():
         itemRGB = '255,255,255'
-        
+        hit_str = ""
+
         if r['score']>1:
+            hit_str += "-evof"
             if r['rscape_TP']>=min_rscape_bp and r['SVM RNA-class probability']>=min_rnaz_prob:
                 itemRGB = color_red
+                hit_str += "-rnaz-rscp"
             elif r['rscape_TP']>=min_rscape_bp:
                 itemRGB = color_green
+                hit_str += "-rscp"
             #elif r['rscape_TP']>0:
             #    itemRGB = color_pink
             elif r['SVM RNA-class probability']>=min_rnaz_prob:
                 itemRGB = color_blue
+                hit_str += "-rnaz"
             else:
                 itemRGB = '10,10,10'
         elif r['SVM RNA-class probability']>=min_rnaz_prob:
-            if r['rscape_TP']>1:
+            hit_str += "-rnaz"
+            if r['rscape_TP']>=min_rscape_bp:
                  itemRGB = color_pink
+                 hit_str += "-rscp"
             else:
                  itemRGB = color_yellow
                     
@@ -95,6 +102,8 @@ def add_itemRGB_to_bed(df,min_rscape_bp, min_rnaz_prob, skip_rest=False, simple_
                 bed9[3] = '-'.join(bed9[3].split('-')[1:]) # remove gene name section for shorter names
                 bed9[3] = bed9[3].replace('X-','C')
                 bed9[3] = bed9[3].replace('Xtend5UTR-','')
+            if annotate_tools is True:
+                bed9[3] += hit_str
             if(len(r['cluster_human_loc'].split(','))>1):
                 bed9[3]+='-paralog'
             elif r['num_human_seqs_all'] >= 2:
@@ -168,13 +177,11 @@ if args.exclude_spurious_structs is True:
     df_filtered = df_filtered[df_filtered['Structure conservation index']>args.spurious_SCI]
 
 print('Info: Clusters were reduced to {}'.format(len(df_filtered)))
-
 if args.filtered_tsv_out:
     if args.all_columns is True:
         df_filtered.to_csv(args.filtered_tsv_out,sep='\t',index=False)
     else:
-        clean_columns(df_filtered).to_csv(args.filtered_tsv_out,sep='\t',index=False)
-print(df_filtered.info())
+        clean_columns(df_filtered).fillna('nan').to_csv(args.filtered_tsv_out,sep='\t',index=False)
 
 if args.bed_out:
     df_filtered_with_human_loc = df_filtered[~ (df_filtered['cluster_human_loc'].isnull())].copy()
