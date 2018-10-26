@@ -2027,7 +2027,8 @@ sub fragment_overlap {
   return \@overlaps;
 }
 
-sub read_CM_tabfile_ext {
+
+sub read_CM_tabfile_ext_1_0 {
   my $tab_file     = $_[0];
   my $min_bitscore = $_[1];
   my $max_eval     = $_[2];
@@ -2136,6 +2137,127 @@ sub read_CM_tabfile_ext {
   ## return array with record refs of filtered hits
   return \@cm_hit_scores_fil;
 }
+
+
+
+sub read_CM_tabfile_ext_1_1 {
+  my $tab_file     = $_[0];
+  my $min_bitscore = $_[1];
+  my $max_eval     = $_[2];
+  my $significance = $_[3];
+  my $tab_name     = $_[4];
+
+
+  open( TABRES, "$tab_file" ) or die "$tab_file tab_result file could not be loaded!";
+
+  my @cm_hit_scores = ();
+
+  my $use_e_values = 0;
+  my $lineLast     = "";
+
+  while ( my $line = <TABRES> ) {
+
+    $lineLast = $line;
+    next if ( $line =~ /^\#/ );    ## ignore comments in cmsearch output
+    chomp $line;
+    my @line = split( " ", $line );
+#    print "line = @line \n";
+#    print "line[1] = $line[0] \n";
+#    next if ( @line != 17 );
+#    print "nextic heto \n";
+    $use_e_values = 1 if ( $line[15] ne "-" );
+
+    my $strand = "+";
+    my $hit    = {
+      SEQID    => $line[0],
+      START    => $line[7],
+      STOP     => $line[8],
+      BITSCORE => $line[14],
+      EVALUE   => $line[15],
+      STRAND   => $strand,
+      NAME     => $tab_name
+    };
+#    print "seq @line \n";
+    ## swap start for reverse strand hits, we treat all hits based on + strand
+    if ( $line[5] > $line[6] ) {
+      $strand        = "-";
+      $hit->{START}  = $line[8];
+      $hit->{STOP}   = $line[7];
+      $hit->{STRAND} = $strand;
+    }
+
+    $hit->{KEY} = $hit->{SEQID} . "#" . $hit->{START} . "#" . $hit->{STOP} . "#" . $hit->{STRAND};
+
+    push( @cm_hit_scores, $hit );
+
+    # print join(":",@{$hit})."\n";
+    #    $last_id = $line[1];
+  }    ## while line <TABRES>
+  close TABRES;
+
+  @cm_hit_scores = () if ( $lineLast !~ /^\#/ ); ## simple check that cmsearch finished correctly
+
+  return \@cm_hit_scores if ( !@cm_hit_scores );
+
+  ## score sort hits
+  my $co = 0;
+
+  if ( !$use_e_values && $significance < 1 ) {
+
+    @cm_hit_scores = sort { $b->{BITSCORE} <=> $a->{BITSCORE} } @cm_hit_scores;
+
+    open( OUT, ">$tab_file.scores" );
+    foreach my $key (@cm_hit_scores) {
+      print OUT $key->{BITSCORE} . "\n";
+    }
+    close(OUT);
+
+    if ( @cm_hit_scores > 10 && $significance < 1 ) { ## todo: check which number is ok for evd fitting
+      my $Rcall = readpipe("export R_ENVIRON=$BIN_DIR/Renviron_config; $CONFIG{PATH_R}/Rscript $BIN_DIR/matrixSignificance.R $tab_file.scores $significance 2>$tab_file.R_LOG");
+
+      #print $Rcall;
+      $co = $1 if ( $Rcall =~ /cutoff=\s+(.*)$/ );
+
+      #print "fit evd with significance=$significance\n";
+    }
+
+    #system("rm -f $tab_file.scores");
+    $co = max( $co, $min_bitscore );
+
+    print "found bitscore cutoff=$co ";
+
+  } elsif ($use_e_values) {
+    $co = $max_eval;
+    print "found evalue cutoff=$co ";
+  } else {
+    $co = $min_bitscore;
+    print "found bitscore cutoff=$co ";
+  }
+
+  ## filter hits for score
+  my @cm_hit_scores_fil = ();
+  print "size hits " . scalar(@cm_hit_scores);
+  foreach my $hit (@cm_hit_scores) {
+
+    if ( $use_e_values && $hit->{EVALUE} <= $co ) {
+      push( @cm_hit_scores_fil, $hit );
+    } elsif ( !$use_e_values && ( ( $co > 0 && $hit->{BITSCORE} >= $co ) || ( $co == 0 && $hit->{BITSCORE} > 0 ) ) ) {
+      push( @cm_hit_scores_fil, $hit );
+    }
+
+  }
+
+  @cm_hit_scores_fil = sort { $a->{SEQID} cmp $b->{SEQID} } @cm_hit_scores_fil;
+  print " size hits fil " . scalar(@cm_hit_scores_fil) . " $tab_file\n";
+  ## return array with record refs of filtered hits
+  return \@cm_hit_scores_fil;
+}
+
+
+
+
+
+
 
 sub evaluate_cm_hits {
   my $classHash   = $_[0];

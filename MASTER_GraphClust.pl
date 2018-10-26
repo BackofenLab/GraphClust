@@ -48,6 +48,7 @@ my $in_man;
 my $in_help;
 my $in_num_threads;
 my $in_SGE_PE_name = "*";
+my $newInf;
 
 GetOptions(
   "root-dir=s"  => \$in_ROOTDIR,
@@ -65,6 +66,7 @@ GetOptions(
   "debug"       => \$in_debug,
   "help"        => \$in_help,
   "man"         => \$in_man,
+  "infernal_1_1" => \$newInf,
 ) || pod2usage(1);
 
 pod2usage( -exitstatus => 0, -verbose => 1 ) if ($in_help);
@@ -417,7 +419,7 @@ if ( !-e "$SVECTOR_DIR/data.svector.DONE" ) {
   ## remove binary features of each group
   system_call("for i in \$(seq 1 $num_groups); do rm -f $SVECTOR_DIR/data.svector.\$i; done");
   ## remove gspan files
-  system_call("\\rm -f $GSPAN_DIR/*.group.gspan.* ");
+##  system_call("\\rm -f $GSPAN_DIR/*.group.gspan.* ");
 
   system("touch $SVECTOR_DIR/data.svector.DONE");
   system( "echo  \`date\` >> $time_file; echo " . time . " >> $time_file " );
@@ -741,6 +743,7 @@ foreach my $CI ( 1 .. $GLOBAL_iterations ) {
       my $params_cmsearcher = "--root $in_ROOTDIR -tgtdir $curr_cmsearch_dir ";
       $params_cmsearcher .= "-stk $curr_cluster_dir/MODEL/model.stk -db $FASTA_DIR/data.fasta.scan ";
       $params_cmsearcher .= "--verbose " if ($in_verbose);
+      $params_cmsearcher .= "--infernal_1_1 " if ($newInf);
 
       ##########################################################################################
       ## pre 6 stage: fold used seqs
@@ -903,8 +906,10 @@ foreach my $CI ( 1 .. $GLOBAL_iterations ) {
         my $job_uuid = "stage8-$clus_idx";
 
         my $CMD_stage8 = [];
-        $CMD_stage8->[0] = "perl $BIN_DIR/gc_cmsearch.pl";
-        $CMD_stage8->[1] = "$params_cmsearcher";
+        $CMD_stage8->[0] = "perl $BIN_DIR/gc_cmsearch.pl ";
+        $CMD_stage8->[1] = "$params_cmsearcher ";
+
+
 
         my $sge_status = job_call( $job_name, "$BIN_DIR/gc_cmsearch.sge", $CMD_stage8, 1, $SGE_ERR_DIR, $in_USE_SGE, "$curr_cmsearch_dir/SGE_log", "$EVAL_DIR/times/time.stage.8.$clus_idx", 0, "", $NUM_THREADS, $job_uuid );
 
@@ -925,9 +930,18 @@ foreach my $CI ( 1 .. $GLOBAL_iterations ) {
     }    ## foreach keys %toDo_models
 
     ## write center and f-measure summary only
-    if ( $evaluate && $trigger_new_partition ) {
-      system_call("perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --summary-only --last-ci $CI");
+
+if ( $evaluate && $trigger_new_partition ) {
+      my $CMD_glob_res= "perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --summary-only --last-ci $CI ";
+      $CMD_glob_res .= " --infernal_1_1 " if($newInf);
+      #system_call("perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --summary-only --last-ci $CI $newInf");
+      system_call($CMD_glob_res);
     }
+
+
+#    if ( $evaluate && $trigger_new_partition ) {
+ #     system_call("perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --summary-only --last-ci $CI ". $newInf);
+  #  }
 
     $trigger_new_partition = 0;
     sleep(5);
@@ -938,7 +952,13 @@ foreach my $CI ( 1 .. $GLOBAL_iterations ) {
 
   #GraphClust::evalCLUSTER( "$EVAL_DIR/cluster", $CI, "$EVAL_DIR/stage7.cluster_qual.final", $evaluate );
 
-  system_call( "perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --last-ci $CI --summary-only ", $in_verbose );
+#  system_call( "perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --last-ci $CI --summary-only ". $in_verbose, $newInf );
+
+  my $CMD_glob_res= "perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --last-ci $CI --summary-only  $in_verbose ";
+  $CMD_glob_res .= " --infernal_1_1 " if($newInf);
+  #system_call( "perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --last-ci $CI --summary-only ", $in_verbose, $newInf );
+  system_call($CMD_glob_res);
+
 
   die "\n\nStage end $in_stage_end requested! Exit...\n\n" if ( $in_stage_end <= 8 );
   die "\n\nToo many errors in stages 6-8! Exit...\n\n" if ( $cluster_error >= 1 );
@@ -961,14 +981,19 @@ end_handler(0);
 
 sub collect_results {
 
-  SECTION("stage 9: Final RESULTS - collect all found clusters");
+
+	  SECTION("stage 9: Final RESULTS - collect all found clusters");
 
   my $part_file = "$RESULTS_DIR/partitions/final_partition.soft";
   if ( !-e "$in_ROOTDIR/FASTA/data.greylist" && uc( $CONFIG{results_partition_type} ) =~ /HARD/ ) {
     $part_file = "$RESULTS_DIR/partitions/final_partition.hard.merged";
   }
 
-  system("perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --all ") if ( !-e $part_file );
+  my $forInf = "";
+  $forInf = " --infernal_1_1 " if($newInf);
+  system("perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --all $forInf ") if ( !-e $part_file    || uc( $CONFIG{results_partition_type} ) =~ /HARD/ );
+
+#  system("perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --all ". $newInf ) if ( !-e $part_file || uc( $CONFIG{results_partition_type} ) =~ /HARD/ );
   if (!-e $part_file){
     SUBSECTION("No partition file found! Maybe 0 clusters found so far!");
     return;
@@ -1000,6 +1025,7 @@ sub collect_results {
     $CMD_stage9->[1] = "--root-dir $in_ROOTDIR ";
     $CMD_stage9->[1] .= "--verbose "  if ($in_verbose);
     $CMD_stage9->[1] .= "--evaluate " if ($evaluate);
+    $CMD_stage9->[1] .= "--infernal_1_1 " if ($newInf);
 
     ## (finished?, error?, jobs_finished, jobs_all)
     my $sge_status = [ 0, 1, 0, 0 ];
@@ -1450,7 +1476,11 @@ sub makeBlacklist {
   my @blacklist = ();
 
   ## not necessary !?
-  system_call( "$BIN_DIR/glob_results.pl --root $in_ROOTDIR --all --summary-only --last-ci " . ( $curr_ci - 1 ), $in_verbose );
+
+  my $forInf = "";
+  $forInf = " --infernal_1_1 " if ($newInf);
+  system_call( "$BIN_DIR/glob_results.pl --root $in_ROOTDIR --all --summary-only --last-ci " . ( $curr_ci - 1 ), $in_verbose, $forInf );
+#  system_call( "perl $BIN_DIR/glob_results.pl --root $in_ROOTDIR --all --summary-only --last-ci " . ( $curr_ci - 1 ), $in_verbose, $newInf );
 
   my $fragsDATA = GraphClust::read_fragments("$FASTA_DIR/$DATA_prefix.names");
   my $finalPart = GraphClust::read_partition("$RESULTS_DIR/partitions/final_partition.soft");

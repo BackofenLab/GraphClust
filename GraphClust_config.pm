@@ -13,7 +13,8 @@ our %CONFIG = (
   PATH_LOCARNA       => "/usr/local/user/locarna-1.7.2/bin/",
   PATH_RNASHAPES     => "/usr/local/rnashapes/2.1.6/bin//",
   PATH_VRNA          => "/usr/local/user/ViennaRNA-2.0.7/bin/",
-  PATH_INFERNAL      => "/usr/local/infernal/1.0.2/bin//",
+  PATH_INFERNAL_1_0  => "/usr/local/infernal/1.0.2/bin//",
+  PATH_INFERNAL_1_1  => "/usr/local/infernal/1.1.1/bin//",
   PATH_R             => "/usr/bin/",
   PATH_RNAZ          => "/usr/local/rnaz/2.1-a0130d9/bin//",
   PATH_BLASTCLUST    => "/usr/local/ncbiblast/2.2.15/bin//",
@@ -21,6 +22,7 @@ our %CONFIG = (
   PATH_CMFINDER      => "/usr/local/user/cmfinder-0.2/bin/",
 
   VERSION_INFO       =>  "GraphClust 0.7.6",
+
 
   ## paths not automatically configured
   ## please adapt to your own system
